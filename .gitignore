@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+#IDE
+.idea/
+
+# Virtual environments
+.venv
+
+#.env
+.env
+
+#celery staff
+celerybeat-schedule
+celerybeat-schedule-wal
+celerybeat-schedule-shm
