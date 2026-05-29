@@ -23,7 +23,7 @@ celery_app.conf.update(
 )
 
 
-celery_app.conf.schedule = {
+celery_app.conf.beat_schedule = {
     "run_monitoring": {
         "task": "run_video_probes_task",
         "schedule": timedelta(minutes=config.monitoring_run_interval_minutes),

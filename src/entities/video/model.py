@@ -1,10 +1,7 @@
 from sqlalchemy import ForeignKey, Text, Float
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db import Base
-
-from src.entities.probe.model import Probe
-from src.entities.storage.model import Storage  # noqa: F401
 
 
 class Video(Base):
@@ -18,9 +15,3 @@ class Video(Base):
     bitrate_mbps: Mapped[float | None] = mapped_column(Float, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     size_mb: Mapped[float | None] = mapped_column(Float, nullable=True)
-
-    probes: Mapped[list["Probe"]] = relationship(
-        back_populates="video",
-        cascade="all, delete-orphan",
-        order_by="Probe.created_at.desc()",
-    )
