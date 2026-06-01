@@ -1,5 +1,5 @@
-from sqlalchemy import ForeignKey, Text, Float
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import ForeignKey, Text, Float, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db import Base
 
@@ -11,7 +11,13 @@ class Video(Base):
     storage_id: Mapped[int] = mapped_column(
         ForeignKey("storages.id"), index=True, nullable=True
     )
-    url: Mapped[str] = mapped_column(Text, unique=True)
+    kvs_id: Mapped[int] = mapped_column(Integer, unique=True)
+    server_group_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    video_format: Mapped[str] = mapped_column(Text, nullable=False)
+
     bitrate_mbps: Mapped[float | None] = mapped_column(Float, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     size_mb: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    probes: Mapped[list["Probe"]] = relationship(back_populates="video")  # noqa: F821
+    storage: Mapped["Storage | None"] = relationship(back_populates="videos")  # noqa: F821

@@ -17,8 +17,6 @@ config = context.config
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 
-print("FUCK YUO", cfg)
-
 section = config.config_ini_section
 config.set_section_option(section, "DB_HOST", cfg.db_host)
 config.set_section_option(section, "DB_PORT", cfg.db_port)

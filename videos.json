@@ -1,13 +1,56 @@
-{
-  "https://pimpbunny.com/get_file/5/2321fbbb5c024f5585b15cbd4fe3ec8e/35000/35738/35738_1080p.mp4/?ttl=1779982404&dsc=3bddbc559f10372717b7a97943f9b0a3": "st3.pimpbunny.com",
-  "https://pimpbunny.com/get_file/36/bbd4d2de2702a75fd8e656d887b0fd78/546000/546917/546917_1080p.mp4/?ttl=1779978138&dsc=9e71d1edd81cd6527ce35756be18ada3": "st29.pimpbunny.com",
-  "https://pimpbunny.com/get_file/29/3e2c34102f5b89888954bbc15b082218/504000/504035/504035_1080p.mp4/?ttl=1779979406&dsc=1e1d1b2df24977d8804c6d327a8cb8d6": "st22.pimpbunny.com",
-  "https://pimpbunny.com/get_file/29/f4cabef54d999005514c02937adf9d67/501000/501935/501935_360p.mp4/?ttl=1780045240&dsc=8a8e152a96785a3325f9d8216abdfac6": "st22.pimpbunny.com",
-  "https://pimpbunny.com/get_file/42/2461c5a9c5d29c40853c3473b3284af2/569000/569986/569986_1080p.mp4/?ttl=1780048168&dsc=1b1a279dd813950fa41c2f53d949d596": "st35.pimpbunny.com",
-  "https://pimpbunny.com/get_file/42/1a29021f5a619b72f725b2f88f909689/570000/570094/570094_1080p.mp4/?ttl=1780048451&dsc=42bad4d5ef91d027abb6225a557d481c": "st35.pimpbunny.com",
-  "https://pimpbunny.com/get_file/42/5ac23bf2b6d1d6399f889bf2c891356d/570000/570036/570036_pb_1080p.mp4/?ttl=1780048690&dsc=1ed5c907dda3ab8afba98ec049529879": "st35.pimpbunny.com",
-  "https://pimpbunny.com/get_file/42/ffce0bdc014596991a641e98462691c9/570000/570076/570076_1080p.mp4/?ttl=1780048898&dsc=46bc75887d29ca39e882c4e702c4ea35": "st35.pimpbunny.com",
-  "https://pimpbunny.com/get_file/41/cbd52ef2a20ff6edbf7e6626e0839a62/568000/568062/568062_1080p.mp4/?ttl=1780049137&dsc=956e6ba16944a48031ee073e7ac00e38": "st34.pimpbunny.com",
-  "https://pimpbunny.com/get_file/41/0a8cc080c44cba02129b3e186340ad47/568000/568059/568059_pb_2160p.mp4/?ttl=1780049355&dsc=e87c98fabd3f3ed132539909111ffa90": "st34.pimpbunny.com",
-  "https://pimpbunny.com/get_file/40/bad6e0bb7d69bf64a1883e28d9df14c1/568000/568027/568027_1440p.mp4/?ttl=1780049560&dsc=579801103188ace274983dcd1154a334": "st33.pimpbunny.com"
-}
+[
+  {
+    "kvs_video_id": 569067,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 571183,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 571151,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 570176,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_2160p.mp4"
+  },
+  {
+    "kvs_video_id": 569375,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 569025,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 567909,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_2160p.mp4"
+  },
+  {
+    "kvs_video_id": 566875,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 566857,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  }
+]

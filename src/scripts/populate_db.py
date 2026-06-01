@@ -17,16 +17,21 @@ class DBPopulator:
             async with get_session() as session:
                 video_service = VideoService(session)
                 storage_service = StorageService(session)
-                for url, storage_name in data.items():
-                    storage = await storage_service.get_by_name(storage_name)
+                for d in data:
+                    storage = await storage_service.get_by_name(d["storage"])
                     if storage is None:
                         storage = await storage_service.create(
-                            StorageCreate(name=storage_name)
+                            StorageCreate(name=d["storage"])
                         )
-                    video = await video_service.get_video_from_video_link(url)
+                    video = await video_service.get_video_from_kvs_id(d["kvs_video_id"])
                     if not video:
                         video = await video_service.create(
-                            VideoCreate(url=url, storage_id=storage.id)
+                            VideoCreate(
+                                storage_id=storage.id,
+                                kvs_id=d["kvs_video_id"],
+                                server_group_id=d["server_group_id"],
+                                video_format=d["video_format"],
+                            )
                         )
                         logger.info(f"Created video {video}")
 

@@ -8,9 +8,7 @@ celery_app = Celery(
     "video-probe-worker",
     broker=config.redis_dsn.unicode_string(),
     backend=config.redis_dsn.unicode_string(),
-    include=[
-        "src.video_probe.tasks",
-    ],
+    include=["src.video_probe.tasks", "src.periodic_tasks"],
 )
 
 celery_app.conf.update(
@@ -27,5 +25,9 @@ celery_app.conf.beat_schedule = {
     "run_monitoring": {
         "task": "run_video_probes_task",
         "schedule": timedelta(minutes=config.monitoring_run_interval_minutes),
-    }
+    },
+    "get_analytics_and_push_to_redis": {
+        "task": "calculate_analytics_and_push_to_redis_task",
+        "schedule": timedelta(minutes=config.analytics_update_interval_minutes),
+    },
 }

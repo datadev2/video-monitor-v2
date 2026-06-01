@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import ForeignKey, Float, DateTime, func
-from sqlalchemy.orm import mapped_column, Mapped
+from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 
@@ -26,4 +26,8 @@ class Probe(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+    video: Mapped["Video"] = relationship(  # noqa: F821
+        back_populates="probes",
     )

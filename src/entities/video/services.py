@@ -14,8 +14,8 @@ class VideoService:
         await self.session.commit()
         return VideoRead.model_validate(result)
 
-    async def get_video_from_video_link(self, url: str) -> VideoRead | None:
-        result = await self.dao.find_one(url=url)
+    async def get_video_from_kvs_id(self, kvs_id: int) -> VideoRead | None:
+        result = await self.dao.find_one(kvs_id=kvs_id)
         if result:
             return VideoRead.model_validate(result)
         return None

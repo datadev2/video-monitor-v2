@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 6231d47567aa
+Revision ID: 7c8b60078761
 Revises:
-Create Date: 2026-05-29 14:21:15.449100
+Create Date: 2026-06-01 16:06:12.056947
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "6231d47567aa"
+revision: str = "7c8b60078761"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -33,7 +33,9 @@ def upgrade() -> None:
         "videos",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("storage_id", sa.Integer(), nullable=True),
-        sa.Column("url", sa.Text(), nullable=False),
+        sa.Column("kvs_id", sa.Integer(), nullable=False),
+        sa.Column("server_group_id", sa.Integer(), nullable=False),
+        sa.Column("video_format", sa.Text(), nullable=False),
         sa.Column("bitrate_mbps", sa.Float(), nullable=True),
         sa.Column("duration_seconds", sa.Float(), nullable=True),
         sa.Column("size_mb", sa.Float(), nullable=True),
@@ -42,7 +44,7 @@ def upgrade() -> None:
             ["storages.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("url"),
+        sa.UniqueConstraint("kvs_id"),
     )
     op.create_index(
         op.f("ix_videos_storage_id"), "videos", ["storage_id"], unique=False
