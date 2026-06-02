@@ -3,7 +3,7 @@
     "kvs_video_id": 569067,
     "server_group_id": 42,
     "storage": "st35.pimpbunny.com",
-    "video_format": "_1080p.mp4"
+    "video_format": "_720p.mp4"
   },
   {
     "kvs_video_id": 571183,
@@ -52,5 +52,89 @@
     "server_group_id": 41,
     "storage": "st34.pimpbunny.com",
     "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 571338,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 571312,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 571146,
+    "server_group_id": 42,
+    "storage": "st35.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+    {
+    "kvs_video_id": 569396,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_2160p.mp4"
+  },
+  {
+    "kvs_video_id": 569398,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 569344,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 569392,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 569339,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 569339,
+    "server_group_id": 31,
+    "storage": "st24.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 568301,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 568295,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 568293,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 568276,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_2160p.mp4"
+  },
+  {
+    "kvs_video_id": 568267,
+    "server_group_id": 41,
+    "storage": "st34.pimpbunny.com",
+    "video_format": "_2160p.mp4"
   }
 ]

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field, RedisDsn
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,6 +11,11 @@ class Config(BaseSettings):
         extra="ignore",
         env_file_encoding="utf-8",
     )
+
+    mode: Literal["DEV", "TEST", "PROD"] = Field(default="DEV")
+
+    auth_user: str
+    auth_pass: str
 
     db_engine: str = Field(default="postgresql+asyncpg")
     db_user: str = Field(default="postgres")
@@ -38,6 +45,10 @@ class Config(BaseSettings):
             f"{self.db_host}:{self.db_port}/"
             f"{self.db_name}"
         )
+
+    @property
+    def is_test_mode(self) -> bool:
+        return self.mode == "TEST"
 
 
 config = Config()

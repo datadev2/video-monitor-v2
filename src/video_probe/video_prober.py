@@ -4,9 +4,21 @@ import time
 from typing import Final
 
 import aiohttp
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from src.config import config
-from src.exc import VideoDownloadError, VideoMetadataError, VideoTooSmallError
+from src.exc import (
+    VideoDownloadError,
+    VideoMetadataError,
+    VideoTooSmallError,
+    RetryableVideoMetadataError,
+    RetryableVideoDownloadError,
+)
 from src.video_probe.schemas import DownloadResult, VideoMetadata, VideoProbe
 
 
@@ -28,9 +40,8 @@ class VideoProber:
         self,
         timeout_seconds: int = 120,
         user_agent: str = (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/137.0.0.0 Safari/537.36"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) "
+            "Gecko/20100101 Firefox/139.0"
         ),
     ) -> None:
         self._timeout_seconds = timeout_seconds
@@ -59,6 +70,12 @@ class VideoProber:
             download_duration_seconds=download_result.duration_seconds,
         )
 
+    @retry(
+        retry=retry_if_exception_type(RetryableVideoMetadataError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        reraise=True,
+    )
     async def _fetch_metadata(self, url: str) -> VideoMetadata:
         """
         Uses ffprobe because media containers are messy
@@ -67,8 +84,10 @@ class VideoProber:
 
         process = await asyncio.create_subprocess_exec(
             "ffprobe",
+            "-user_agent",
+            self._user_agent,
             "-v",
-            "quiet",
+            "error",
             "-print_format",
             "json",
             "-show_format",
@@ -79,9 +98,19 @@ class VideoProber:
         )
 
         stdout, stderr = await process.communicate()
+        stderr_text = stderr.decode(errors="replace")
 
         if process.returncode != 0:
-            raise VideoMetadataError(f"ffprobe failed: {stderr.decode().strip()}")
+            if (
+                "Connection to tcp://" in stderr_text
+                or "timed out" in stderr_text.lower()
+                or "temporarily unavailable" in stderr_text.lower()
+                or "but not one of 40{0,1,3,4}" in stderr_text.lower()
+                or "cannot connect to hos" in stderr_text.lower()
+            ):
+                raise RetryableVideoMetadataError(stderr_text)
+
+            raise VideoMetadataError(stderr_text)
 
         try:
             payload = json.loads(stdout.decode())
@@ -113,6 +142,12 @@ class VideoProber:
             duration_seconds=duration_seconds,
         )
 
+    @retry(
+        retry=retry_if_exception_type(RetryableVideoDownloadError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        reraise=True,
+    )
     async def _measure_download_speed(
         self,
         url: str,
@@ -146,6 +181,8 @@ class VideoProber:
                             break
 
         except Exception as exc:
+            if "410" in str(exc):
+                raise RetryableVideoDownloadError(str(exc))
             raise VideoDownloadError(str(exc)) from exc
 
         elapsed = time.monotonic() - started_at

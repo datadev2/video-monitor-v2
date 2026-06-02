@@ -1,12 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from loguru import logger
 
+from src.auth import basic_auth
 from src.link_generator.link_generator import video_link_generator
 from src.link_generator.schemas import VideoLinkData, VideoDownloadData
 
 router = APIRouter(
     prefix="/link-generator",
     tags=["link-generator"],
+    dependencies=[Depends(basic_auth)],
 )
 
 

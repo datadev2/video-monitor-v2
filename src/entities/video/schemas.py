@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -11,6 +13,10 @@ class VideoRead(BaseModel):
     bitrate_mbps: float | None = None
     duration_seconds: float | None = None
     size_mb: float | None = None
+
+    errors_count: int = 0
+    last_error_date: datetime | None = None
+    is_bad: bool = False
 
     class Config:
         from_attributes = True
@@ -27,3 +33,7 @@ class VideoUpdate(BaseModel):
     bitrate_mbps: float | None = None
     duration_seconds: float | None = None
     size_mb: float | None = None
+
+    errors_count: int = 0
+    last_error_date: datetime | None = None
+    is_bad: bool = False

@@ -1,4 +1,6 @@
-from sqlalchemy import ForeignKey, Text, Float, Integer
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, Text, Float, Integer, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db import Base
@@ -18,6 +20,12 @@ class Video(Base):
     bitrate_mbps: Mapped[float | None] = mapped_column(Float, nullable=True)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     size_mb: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    errors_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    is_bad: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     probes: Mapped[list["Probe"]] = relationship(back_populates="video")  # noqa: F821
     storage: Mapped["Storage | None"] = relationship(back_populates="videos")  # noqa: F821

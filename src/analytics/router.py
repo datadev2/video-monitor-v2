@@ -4,9 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.analytics.analytics_service import AnalyticsService
 from src.analytics.schemas import Analytics
+from src.auth import basic_auth
 from src.db import get_async_session
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(basic_auth)],
+)
 
 
 @router.get("/")

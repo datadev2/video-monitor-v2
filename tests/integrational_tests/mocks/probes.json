@@ -1,0 +1,63 @@
+[
+  {
+    "video_id": 1,
+    "download_speed_mbps": 125.4,
+    "status": "Healthy",
+    "created_at": "2026-06-02T08:00:00Z"
+  },
+  {
+    "video_id": 2,
+    "download_speed_mbps": 91.8,
+    "status": "Warning",
+    "created_at": "2026-06-02T08:01:00Z"
+  },
+  {
+    "video_id": 3,
+    "download_speed_mbps": 144.6,
+    "status": "Healthy",
+    "created_at": "2026-06-02T08:02:00Z"
+  },
+  {
+    "video_id": 4,
+    "download_speed_mbps": 55.2,
+    "status": "Warning",
+    "created_at": "2026-06-02T08:03:00Z"
+  },
+  {
+    "video_id": 5,
+    "download_speed_mbps": 188.7,
+    "status": "Healthy",
+    "created_at": "2026-06-02T08:04:00Z"
+  },
+  {
+    "video_id": 6,
+    "download_speed_mbps": 24.5,
+    "status": "Critical",
+    "created_at": "2026-06-02T08:05:00Z"
+  },
+  {
+    "video_id": 7,
+    "download_speed_mbps": 117.9,
+    "status": "Healthy",
+    "created_at": "2026-06-02T08:06:00Z"
+  },
+  {
+    "video_id": 8,
+    "download_speed_mbps": 12.4,
+    "status": "Critical",
+    "created_at": "2026-06-02T08:07:00Z"
+  },
+  {
+    "id": 9,
+    "video_id": 9,
+    "download_speed_mbps": 103.3,
+    "status": "Healthy",
+    "created_at": "2026-06-02T08:08:00Z"
+  },
+  {
+    "video_id": 10,
+    "download_speed_mbps": 38.1,
+    "status": "Warning",
+    "created_at": "2026-06-02T08:09:00Z"
+  }
+]

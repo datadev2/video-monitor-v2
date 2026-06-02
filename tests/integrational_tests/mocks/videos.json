@@ -1,0 +1,122 @@
+[
+  {
+    "storage_id": 1,
+    "kvs_id": 501001,
+    "server_group_id": 41,
+    "video_format": "1080p",
+    "bitrate_mbps": 4.2,
+    "duration_seconds": 643.5,
+    "size_mb": 338.0,
+    "errors_count": 0,
+    "last_error_date": null,
+    "is_bad": false
+  },
+  {
+    "storage_id": 2,
+    "kvs_id": 501002,
+    "server_group_id": 42,
+    "video_format": "720p",
+    "bitrate_mbps": 2.8,
+    "duration_seconds": 521.3,
+    "size_mb": 183.0,
+    "errors_count": 1,
+    "last_error_date": "2026-06-01T08:15:00Z",
+    "is_bad": false
+  },
+  {
+    "storage_id": 3,
+    "kvs_id": 501003,
+    "server_group_id": 41,
+    "video_format": "1440p",
+    "bitrate_mbps": 8.1,
+    "duration_seconds": 901.4,
+    "size_mb": 891.0,
+    "errors_count": 0,
+    "last_error_date": null,
+    "is_bad": false
+  },
+  {
+    "storage_id": 4,
+    "kvs_id": 501004,
+    "server_group_id": 43,
+    "video_format": "1080p",
+    "bitrate_mbps": 5.4,
+    "duration_seconds": 710.0,
+    "size_mb": 480.0,
+    "errors_count": 3,
+    "last_error_date": "2026-06-01T22:05:00Z",
+    "is_bad": false
+  },
+  {
+    "storage_id": 5,
+    "kvs_id": 501005,
+    "server_group_id": 44,
+    "video_format": "2160p",
+    "bitrate_mbps": 16.5,
+    "duration_seconds": 1200.0,
+    "size_mb": 2475.0,
+    "errors_count": 0,
+    "last_error_date": null,
+    "is_bad": false
+  },
+  {
+    "storage_id": 6,
+    "kvs_id": 501006,
+    "server_group_id": 42,
+    "video_format": "480p",
+    "bitrate_mbps": 1.2,
+    "duration_seconds": 340.5,
+    "size_mb": 52.0,
+    "errors_count": 2,
+    "last_error_date": "2026-05-30T11:40:00Z",
+    "is_bad": false
+  },
+  {
+    "storage_id": 7,
+    "kvs_id": 501007,
+    "server_group_id": 45,
+    "video_format": "1080p",
+    "bitrate_mbps": 6.3,
+    "duration_seconds": 854.0,
+    "size_mb": 675.0,
+    "errors_count": 0,
+    "last_error_date": null,
+    "is_bad": false
+  },
+  {
+    "storage_id": 8,
+    "kvs_id": 501008,
+    "server_group_id": 45,
+    "video_format": "720p",
+    "bitrate_mbps": 3.4,
+    "duration_seconds": 623.1,
+    "size_mb": 251.0,
+    "errors_count": 5,
+    "last_error_date": "2026-06-02T07:15:00Z",
+    "is_bad": true
+  },
+  {
+    "storage_id": 9,
+    "kvs_id": 501009,
+    "server_group_id": 41,
+    "video_format": "1080p",
+    "bitrate_mbps": 4.8,
+    "duration_seconds": 777.0,
+    "size_mb": 444.0,
+    "errors_count": 0,
+    "last_error_date": null,
+    "is_bad": false
+  },
+  {
+    "storage_id": 10,
+    "kvs_id": 501010,
+    "server_group_id": 46,
+    "video_format": "1440p",
+    "bitrate_mbps": 9.2,
+    "duration_seconds": 980.0,
+    "size_mb": 1127.0,
+    "errors_count": 4,
+    "last_error_date": "2026-06-02T06:00:00Z",
+    "is_bad": true
+  }
+]

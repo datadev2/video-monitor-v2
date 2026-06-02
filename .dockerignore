@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.env
+venv
+.idea
+.vscode
+.codex
+docker-compose*
+Dockerfile
+README.md
+pb.env

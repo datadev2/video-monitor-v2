@@ -6,6 +6,7 @@ from src.entities.probe.schemas import ProbeCreate
 from src.entities.probe.services import ProbeService
 from src.entities.video.schemas import VideoUpdate
 from src.entities.video.services import VideoService
+from src.exc import VideoDownloadError, VideoMetadataError, VideoTooSmallError
 from src.link_generator.link_generator import video_link_generator
 from src.video_probe.baseline_calculator import BaselineCalculator
 from src.video_probe.video_prober import video_prober
@@ -22,17 +23,22 @@ async def run_video_probes() -> None:
         probe_service = ProbeService(session)
         baseline_calculator = BaselineCalculator(session)
         videos = await video_service.get_videos_for_probe()
+        errors = []
         for video in videos:
+            url = video_link_generator.generate_kvs_link(
+                server_group_id=video.server_group_id,
+                video_id=video.kvs_id,
+                video_format=video.video_format,
+            )
+
             try:
-                url = video_link_generator.generate_kvs_link(
-                    server_group_id=video.server_group_id,
-                    video_id=video.kvs_id,
-                    video_format=video.video_format,
-                )
                 result = await video_prober.probe(url)
                 logger.info(result)
-            except Exception as e:
+            except (VideoMetadataError, VideoTooSmallError, VideoDownloadError) as e:
                 logger.warning(f"Probed {url} failed: {e}")
+                errors.append(url)
+
+                await video_service.mark_video_with_error(video)
                 continue
             download_speed_baseline = await baseline_calculator.calculate_baseline(
                 video.storage_id
@@ -61,3 +67,5 @@ async def run_video_probes() -> None:
                 status=status,
             )
             await probe_service.create(probe)
+
+        logger.info(f"Found {len(errors)} errors: {errors}")
