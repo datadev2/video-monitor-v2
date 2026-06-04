@@ -1,12 +1,21 @@
+from datetime import timedelta, timezone, datetime
+
 import pytest
 
 from src.analytics.analytics_service import AnalyticsService
 
 
+class MockAnalyticsService(AnalyticsService):
+    @staticmethod
+    def _analytics_period_start() -> datetime:
+        """Return the beginning of the analytics time window."""
+        return datetime.now(timezone.utc) - timedelta(days=3650)
+
+
 @pytest.mark.asyncio
 class TestAnalyticsService:
     async def test_baselines_analytics(self, async_session):
-        service = AnalyticsService(async_session)
+        service = MockAnalyticsService(async_session)
 
         result = await service.get_baselines()
 
@@ -18,7 +27,7 @@ class TestAnalyticsService:
             assert item.baseline > 0
 
     async def test_get_download_speed(self, async_session):
-        service = AnalyticsService(async_session)
+        service = MockAnalyticsService(async_session)
 
         result = await service.get_download_speed()
 
@@ -28,7 +37,7 @@ class TestAnalyticsService:
             assert item.avg_download_speed > 0
 
     async def test_get_health_statuses_sql(self, async_session):
-        service = AnalyticsService(async_session)
+        service = MockAnalyticsService(async_session)
 
         rows = await service._get_health_statuses_sql()
 
@@ -42,7 +51,7 @@ class TestAnalyticsService:
         assert "status" in row
 
     async def test_get_health_statuses(self, async_session):
-        service = AnalyticsService(async_session)
+        service = MockAnalyticsService(async_session)
 
         result = await service.get_health_statuses()
 

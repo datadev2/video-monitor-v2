@@ -22,7 +22,7 @@ class AnalyticsService:
         self.session = session
 
     async def get_baselines(self) -> Sequence[BaselineAnalytics]:
-        dt = datetime.now(timezone.utc) - timedelta(days=1)
+        dt = self._analytics_period_start()
         stmt = (
             select(
                 func.avg(Probe.download_speed_mbps).label("baseline"),
@@ -39,7 +39,7 @@ class AnalyticsService:
         return [BaselineAnalytics(**row) for row in rows]
 
     async def get_download_speed(self) -> Sequence[DownloadSpeedAnalytics]:
-        dt = datetime.now(timezone.utc) - timedelta(days=1)
+        dt = self._analytics_period_start()
         stmt = (
             select(
                 func.avg(Probe.download_speed_mbps).label("avg_download_speed"),
@@ -57,7 +57,7 @@ class AnalyticsService:
 
     async def get_health_statuses(self) -> Sequence[StatusAnalytics]:
         mappings = await self._get_health_statuses_sql()
-        pre_computed_data = defaultdict(dict)
+        pre_computed_data: defaultdict = defaultdict(dict)
         for data in mappings:
             storage_id = data.storage_id
             storage_name = data["storage_name"]
@@ -75,7 +75,7 @@ class AnalyticsService:
         return result
 
     async def _get_health_statuses_sql(self) -> Sequence:
-        dt = datetime.now(timezone.utc) - timedelta(days=1)
+        dt = self._analytics_period_start()
 
         stmt = (
             select(
@@ -96,3 +96,8 @@ class AnalyticsService:
         rows = result.mappings().all()
 
         return rows
+
+    @staticmethod
+    def _analytics_period_start() -> datetime:
+        """Return the beginning of the analytics time window."""
+        return datetime.now(timezone.utc) - timedelta(days=1)

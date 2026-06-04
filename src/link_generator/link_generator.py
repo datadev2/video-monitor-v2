@@ -6,6 +6,8 @@ from src.config import config
 
 
 class VideoLinkGenerator:
+    """Generates signed KVS video URLs."""
+
     def __init__(self):
         self.base_url = "https://pimpbunny.com"
         self.cv = config.kvs_cv
@@ -18,6 +20,20 @@ class VideoLinkGenerator:
         video_id: int,
         video_format: str,
     ):
+        """
+        Generate a signed KVS video URL.
+
+        The URL contains a base hash and a check hash calculated
+        according to the KVS file protection algorithm.
+
+        Args:
+            server_group_id: KVS server group identifier.
+            video_id: KVS video identifier.
+            video_format: Video format suffix (e.g. "_1080p.mp4").
+
+        Returns:
+            str: Fully qualified KVS video URL.
+        """
         content_dir = self.get_content_directory(video_id)
         base_hash = self._generate_base_hash(content_dir, video_id, video_format)
 
@@ -44,6 +60,20 @@ class VideoLinkGenerator:
         base_hash: str,
         check_hash: str,
     ) -> str:
+        """
+        Build the final KVS URL from generated components.
+
+        Args:
+            server_group_id: KVS server group identifier.
+            content_dir: KVS content directory.
+            video_id: KVS video identifier.
+            video_format: Video format suffix.
+            base_hash: Base file hash.
+            check_hash: Validation hash.
+
+        Returns:
+            str: Fully qualified KVS video URL.
+        """
         return (
             f"{self.base_url}/get_file/"
             f"{server_group_id}/"
@@ -58,11 +88,34 @@ class VideoLinkGenerator:
         encoded_hash: str,
         ip: str,
     ) -> str:
+        """
+        Generate the KVS validation hash.
+
+        The hash is derived from the encoded base hash,
+        KVS secret value and client IP address.
+
+        Args:
+            encoded_hash: Encoded base hash.
+            ip: Client IP address.
+
+        Returns:
+            str: First 10 characters of the validation hash.
+        """
         raw = f"{encoded_hash}{self.cv}{ip}"
 
         return hashlib.md5(raw.encode()).hexdigest()[:10]
 
     def _encode_hash(self, hash_value: str, ahv: str) -> str:
+        """
+        Encode a hash using the KVS AHV transformation algorithm.
+
+        Args:
+            hash_value: Hash to encode.
+            ahv: KVS AHV configuration value.
+
+        Returns:
+            str: Encoded hash.
+        """
         hash_list = list(hash_value)
 
         for i in range(len(hash_list)):
@@ -87,6 +140,17 @@ class VideoLinkGenerator:
         video_id: int,
         video_format: str,
     ) -> str:
+        """
+        Generate the base KVS file hash.
+
+        Args:
+            content_dir: KVS content directory.
+            video_id: KVS video identifier.
+            video_format: Video format suffix.
+
+        Returns:
+            str: MD5 hash used as the base URL signature.
+        """
         raw = f"{self.cv}{content_dir}/{video_id}/{video_id}{video_format}"
         return hashlib.md5(raw.encode()).hexdigest()
 

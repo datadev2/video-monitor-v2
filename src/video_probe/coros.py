@@ -13,11 +13,37 @@ from src.video_probe.video_prober import video_prober
 
 
 async def probe_video(video_link: str) -> None:
+    """
+    Probe a single video URL and log the result.
+
+    This helper is primarily intended for manual testing
+    and debugging of the video probing pipeline.
+
+    Args:
+        video_link: Video URL to probe.
+    """
     probe = await video_prober.probe(video_link)
     logger.info(f"Probed {probe}")
 
 
 async def run_video_probes() -> None:
+    """
+    Execute the scheduled video monitoring workflow.
+
+    The workflow performs the following steps:
+
+    - retrieves videos eligible for probing;
+    - generates protected KVS download URLs;
+    - probes video availability and download performance;
+    - updates missing video metadata;
+    - calculates storage-specific performance baselines;
+    - evaluates probe health status;
+    - persists probe results;
+    - tracks videos with repeated probe failures.
+
+    Videos that fail probing three times are automatically
+    marked as bad and excluded from future probe runs.
+    """
     async with get_session() as session:
         video_service = VideoService(session)
         probe_service = ProbeService(session)

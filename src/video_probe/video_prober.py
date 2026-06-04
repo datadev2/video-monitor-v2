@@ -48,6 +48,26 @@ class VideoProber:
         self._user_agent = user_agent
 
     async def probe(self, url: str) -> VideoProbe:
+        """
+        Probe a video URL and collect performance metrics.
+
+        The probing process consists of:
+        - fetching video metadata via ffprobe;
+        - validating the video size;
+        - downloading a portion of the file;
+        - measuring effective download speed.
+
+        Args:
+            url: Video URL to probe.
+
+        Returns:
+            VideoProbe: Collected metadata and download statistics.
+
+        Raises:
+            VideoTooSmallError: If the video size is below the configured threshold.
+            VideoMetadataError: If metadata extraction fails.
+            VideoDownloadError: If download speed measurement fails.
+        """
         metadata = await self._fetch_metadata(url)
 
         size_mb = metadata.size_bytes / 1024 / 1024
@@ -60,10 +80,10 @@ class VideoProber:
 
         download_result = await self._measure_download_speed(url)
 
-        return VideoProbe(
+        return VideoProbe(  # type: ignore
             url=url,
             size_mb=round(size_mb, 2),
-            duration_seconds=metadata.duration_seconds,
+            duration_seconds=metadata.duration_seconds,  # type: ignore
             bitrate_mbps=metadata.bitrate_mbps,
             download_speed_mbps=download_result.download_speed_mbps,
             downloaded_bytes=download_result.downloaded_bytes,
@@ -78,8 +98,19 @@ class VideoProber:
     )
     async def _fetch_metadata(self, url: str) -> VideoMetadata:
         """
-        Uses ffprobe because media containers are messy
-        and ffprobe is extremely battle-tested.
+        Retrieve video metadata using ffprobe.
+
+        Extracts file size, duration and bitrate from the remote media file.
+
+        Args:
+            url: Video URL.
+
+        Returns:
+            VideoMetadata: Parsed video metadata.
+
+        Raises:
+            RetryableVideoMetadataError: For temporary network-related failures.
+            VideoMetadataError: For unrecoverable metadata extraction errors.
         """
 
         process = await asyncio.create_subprocess_exec(
@@ -152,6 +183,24 @@ class VideoProber:
         self,
         url: str,
     ) -> DownloadResult:
+        """
+        Measure effective video download throughput.
+
+        Downloads up to the configured number of megabytes and calculates
+        the average transfer speed based on the amount of data received
+        and the elapsed time.
+
+        Args:
+            url: Video URL.
+
+        Returns:
+            DownloadResult: Download statistics including throughput,
+                transferred bytes and elapsed time.
+
+        Raises:
+            RetryableVideoDownloadError: For temporary download failures.
+            VideoDownloadError: For unrecoverable download errors.
+        """
         max_bytes = self.DOWNLOAD_SIZE_MB * 1024 * 1024
 
         timeout = aiohttp.ClientTimeout(
