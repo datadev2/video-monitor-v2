@@ -106,7 +106,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            citadelbv/pb-accessibility-analysis: latest
+            citadelbv/pb-accessibility-analysis:latest
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v1.2.0
