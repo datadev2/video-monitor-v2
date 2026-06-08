@@ -93,7 +93,7 @@ class VideoProber:
     @retry(
         retry=retry_if_exception_type(RetryableVideoMetadataError),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
+        wait=wait_exponential(multiplier=2, min=1, max=30),
         reraise=True,
     )
     async def _fetch_metadata(self, url: str) -> VideoMetadata:
