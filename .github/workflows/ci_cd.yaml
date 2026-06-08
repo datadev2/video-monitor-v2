@@ -150,7 +150,4 @@ jobs:
             cd pb-accessibility-analysis
             
             docker compose pull
-
-            docker compose down
-
-            docker compose up -d
+            docker compose up -d --force-recreate --remove-orphans
