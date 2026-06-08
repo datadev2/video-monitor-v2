@@ -145,8 +145,6 @@ jobs:
             KVS_AHV=${{ secrets.KVS_AHV }}
             IP=${{ secrets.IP }}
             EOF
-            
-            cd pb-accessibility-analysis
-            
+
             docker compose pull
             docker compose up -d --force-recreate --remove-orphans

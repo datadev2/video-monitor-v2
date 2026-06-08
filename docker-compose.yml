@@ -1,0 +1,54 @@
+services:
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: "postgres"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: always
+
+  celery-worker:
+    image: citadelbv/pb-accessibility-analysis:latest
+    command: celery -A src.celery_app:celery_app worker --concurrency=1 --loglevel=INFO
+    depends_on:
+      - redis
+    environment:
+      REDIS_DSN: redis://redis:6379/0
+    env_file:
+      - .env
+    restart: always
+
+  beat:
+    image: citadelbv/pb-accessibility-analysis:latest
+    command: celery -A src.celery_app:celery_app beat --loglevel=INFO
+    depends_on:
+      - redis
+    environment:
+      REDIS_DSN: redis://redis:6379/0
+    env_file:
+      - .env
+    restart: always
+
+  api:
+    image: citadelbv/pb-accessibility-analysis:latest
+    command: uvicorn src.main:app --port=8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db
+      - redis
+    environment:
+      REDIS_DSN: redis://redis:6379/0
+    env_file:
+      - .env
+    restart: always
+
+volumes:
+  dbdata:
