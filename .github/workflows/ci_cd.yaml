@@ -106,8 +106,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            citadelbv/video-monitor-v2:latest
-            citadelbv/video-monitor-v2:${{ github.sha }}
+            citadelbv/pb-accessibility-analysis: latest
 
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v1.2.0
