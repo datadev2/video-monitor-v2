@@ -6,7 +6,12 @@ from src.entities.probe.schemas import ProbeCreate
 from src.entities.probe.services import ProbeService
 from src.entities.video.schemas import VideoUpdate
 from src.entities.video.services import VideoService
-from src.exc import VideoDownloadError, VideoMetadataError, VideoTooSmallError
+from src.exc import (
+    VideoDownloadError,
+    VideoMetadataError,
+    VideoTooSmallError,
+    RetryableVideoMetadataError,
+)
 from src.link_generator.link_generator import video_link_generator
 from src.video_probe.baseline_calculator import BaselineCalculator
 from src.video_probe.video_prober import video_prober
@@ -60,12 +65,21 @@ async def run_video_probes() -> None:
             try:
                 result = await video_prober.probe(url)
                 logger.info(result)
-            except (VideoMetadataError, VideoTooSmallError, VideoDownloadError) as e:
+            except (
+                VideoMetadataError,
+                VideoTooSmallError,
+                VideoDownloadError,
+            ) as e:
                 logger.warning(f"Probed {url} failed: {e}")
                 errors.append(url)
-
                 await video_service.mark_video_with_error(video)
                 continue
+
+            except RetryableVideoMetadataError as e:
+                logger.warning(f"Probed {url} failed: {e}")
+                errors.append(url)
+                continue
+
             download_speed_baseline = await baseline_calculator.calculate_baseline(
                 video.storage_id
             )

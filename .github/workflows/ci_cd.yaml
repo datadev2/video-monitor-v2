@@ -1,0 +1,75 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+env:
+  IMAGE_NAME: citadelbv/pb-accessibility-analysis
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test_user -d test_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h 127.0.0.1 -p 5432 -U test_user -d test_db && exit 0
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+          echo "PostgreSQL did not start in time"
+          exit 1
+        env:
+          PGPASSWORD: test_pass
+
+      - name: Run tests
+        env:
+          MODE: TEST
+
+          DB_ENGINE: "postgresql+asyncpg"
+          DB_PASSWORD: test_pass
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_NAME: test_db
+
+        run: |
+          uv run pytest tests \
+            -v \
+            --cov=app \
+            --cov-report=term-missing

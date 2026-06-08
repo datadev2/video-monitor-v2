@@ -22,12 +22,8 @@ celery_app.conf.update(
 
 
 celery_app.conf.beat_schedule = {
-    "run_monitoring": {
-        "task": "run_video_probes_task",
-        "schedule": timedelta(minutes=config.monitoring_run_interval_minutes),
-    },
-    "get_analytics_and_push_to_redis": {
-        "task": "calculate_analytics_and_push_to_redis_task",
+    "run_monitoring_and_calculate_analytics": {
+        "task": "run_monitoring_and_calculate_analytics_task",
         "schedule": timedelta(minutes=config.analytics_update_interval_minutes),
     },
 }
