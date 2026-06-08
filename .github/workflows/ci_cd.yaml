@@ -78,3 +78,79 @@ jobs:
             -v \
             --cov=app \
             --cov-report=term-missing
+
+  deploy:
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            citadelbv/video-monitor-v2:latest
+            citadelbv/video-monitor-v2:${{ github.sha }}
+
+      - name: Deploy to remote server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_SSH_KEY }}
+
+          script: |
+            cd /opt/video-monitor-v2
+
+            cat > .env <<EOF
+            MODE=PROD
+
+            AUTH_USER=${{ secrets.AUTH_USER }}
+            AUTH_PASS=${{ secrets.AUTH_PASS }}
+
+            DB_ENGINE=postgresql+asyncpg
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_NAME=${{ secrets.DB_NAME }}
+
+            REDIS_DSN=${{ secrets.REDIS_DSN }}
+
+            VIDEO_MIN_SIZE_MB=${{ secrets.VIDEO_MIN_SIZE_MB }}
+            VIDEOS_DOWNLOAD_SIZE_MB=${{ secrets.VIDEOS_DOWNLOAD_SIZE_MB }}
+
+            MIN_BASELINE_SPEED_MBPS=${{ secrets.MIN_BASELINE_SPEED_MBPS }}
+            MONITORING_RUN_INTERVAL_MINUTES=${{ secrets.MONITORING_RUN_INTERVAL_MINUTES }}
+
+            ANALYTICS_UPDATE_INTERVAL_MINUTES=${{ secrets.ANALYTICS_UPDATE_INTERVAL_MINUTES }}
+
+            KVS_CV=${{ secrets.KVS_CV }}
+            KVS_AHV=${{ secrets.KVS_AHV }}
+            IP=${{ secrets.IP }}
+            EOF
+            
+            cd pb-accessibility-analysis
+            
+            docker compose pull
+
+            docker compose down
+
+            docker compose up -d
