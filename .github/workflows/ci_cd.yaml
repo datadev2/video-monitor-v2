@@ -116,7 +116,7 @@ jobs:
           key: ${{ secrets.REMOTE_SSH_KEY }}
 
           script: |
-            cd /opt/video-monitor-v2
+            cd pb-accessibility-analysis
 
             cat > .env <<EOF
             MODE=PROD
@@ -147,4 +147,4 @@ jobs:
             EOF
 
             docker compose pull
-            docker compose up -d --force-recreate --remove-orphans
+            docker compose up -d

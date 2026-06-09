@@ -21,17 +21,9 @@ WORKDIR /app
 COPY uv.lock pyproject.toml /app/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv lock
-
-RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
 COPY . /app
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev
-
-
 
 # ---------- RUNTIME ----------
 FROM base
@@ -48,3 +40,5 @@ RUN chown -R prod:prod /app
 ENV PATH="/app/.venv/bin:$PATH"
 
 USER prod
+
+RUN cat /app/src/periodic_tasks.py
