@@ -12,4 +12,3 @@ venv
 docker-compose*
 Dockerfile
 README.md
-pb.env
