@@ -41,4 +41,3 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 USER prod
 
-RUN cat /app/src/periodic_tasks.py
