@@ -35,8 +35,6 @@ class Config(BaseSettings):
     kvs_ahv: str = Field(default="")
     ip: str = Field(default="0.0.0.0")
 
-    analytics_update_interval_minutes: int = Field(default=60)
-
     @property
     def db_connection_string(self) -> str:
         return (
