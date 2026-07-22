@@ -30,21 +30,21 @@ status_metric = Gauge(
 
 class MetricsService:
     def update_metrics(self):
-        baselines = redis_cli.get("baselines", [])
+        baselines = redis_cli.get("baselines") or []
         for item in baselines:
             baseline_metric.labels(
                 storage_id=item["storage_id"],
                 storage_name=item["storage_name"],
             ).set(item["baseline"])
 
-        avg_download_speeds = redis_cli.get("avg_download_speeds", [])
+        avg_download_speeds = redis_cli.get("avg_download_speeds") or []
         for item in avg_download_speeds:
             download_speed_metric.labels(
                 storage_id=item["storage_id"],
                 storage_name=item["storage_name"],
             ).set(item["avg_download_speed"])
 
-        health_statuses = redis_cli.get("health_statuses", [])
+        health_statuses = redis_cli.get("health_statuses") or []
         for storage in health_statuses:
             for status_data in storage["statuses"]:
                 status_metric.labels(
