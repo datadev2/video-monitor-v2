@@ -1,8 +1,12 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
+from src.config import config
 from src.entities.video.dao import VideoDAO
+from src.entities.video.model import Video
 from src.entities.video.schemas import VideoRead, VideoCreate, VideoUpdate
 
 
@@ -46,12 +50,27 @@ class VideoService:
         """
         Retrieve videos eligible for probing.
 
+        Picks a random sample of videos per storage (limited by
+        config.probes_per_storage) instead of every video at once,
+        so a single run doesn't hammer a storage with a full batch
+        of requests.
+
         Returns:
             list[VideoRead]: Videos that are not marked as bad and
                 can be processed by the probe worker.
         """
-        result = await self.dao.find_all(is_bad=False)
-        return [VideoRead.model_validate(r) for r in result]
+        row_number = (
+            func.row_number()
+            .over(partition_by=Video.storage_id, order_by=func.random())
+            .label("row_number")
+        )
+        subq = select(Video, row_number).where(Video.is_bad.is_(False)).subquery()
+        ranked_video = aliased(Video, subq)
+        stmt = select(ranked_video).where(
+            subq.c.row_number <= config.probes_per_storage
+        )
+        result = await self.session.execute(stmt)
+        return [VideoRead.model_validate(r) for r in result.scalars().all()]
 
     async def update_video_metadata(
         self, video_id: int, video_data: VideoUpdate

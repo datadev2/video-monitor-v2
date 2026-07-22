@@ -32,6 +32,9 @@ class Config(BaseSettings):
     warning_speed_threshold_mbps: float = Field(default=20.0)
     monitoring_run_interval_minutes: int = Field(default=60)
 
+    probes_per_storage: int = Field(default=3)
+    probe_delay_seconds: float = Field(default=5.0)
+
     kvs_cv: str = Field(default="")
     kvs_ahv: str = Field(default="")
     ip: str = Field(default="0.0.0.0")
