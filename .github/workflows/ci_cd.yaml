@@ -154,6 +154,8 @@ jobs:
             KVS_CV=${{ secrets.KVS_CV }}
             KVS_AHV=${{ secrets.KVS_AHV }}
             IP=${{ secrets.IP }}
+
+            GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
             EOF
 
             docker compose pull
