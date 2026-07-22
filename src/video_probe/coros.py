@@ -1,3 +1,5 @@
+import asyncio
+
 from loguru import logger
 
 from src.config import config
@@ -64,53 +66,56 @@ async def run_video_probes() -> None:
             )
 
             try:
-                result = await video_prober.probe(url)
-                logger.info(result)
-            except (
-                VideoMetadataError,
-                VideoTooSmallError,
-                VideoDownloadError,
-            ) as e:
-                logger.warning(f"Probed {url} failed: {e}")
-                errors.append(url)
-                await video_service.mark_video_with_error(video)
-                continue
+                try:
+                    result = await video_prober.probe(url)
+                    logger.info(result)
+                except (
+                    VideoMetadataError,
+                    VideoTooSmallError,
+                    VideoDownloadError,
+                ) as e:
+                    logger.warning(f"Probed {url} failed: {e}")
+                    errors.append(url)
+                    await video_service.mark_video_with_error(video)
+                    continue
 
-            except RetryableVideoMetadataError as e:
-                logger.warning(f"Probed {url} failed: {e}")
-                errors.append(url)
-                continue
+                except RetryableVideoMetadataError as e:
+                    logger.warning(f"Probed {url} failed: {e}")
+                    errors.append(url)
+                    continue
 
-            download_speed_baseline = await baseline_calculator.calculate_baseline(
-                video.storage_id
-            )
-            logger.info(f"{video.storage_id=} {download_speed_baseline=}")
-            if (
-                (not video.size_mb)
-                or (not video.bitrate_mbps)
-                or (not video.duration_seconds)
-            ):
-                video_data = VideoUpdate(
-                    duration_seconds=result.duration_seconds,
-                    bitrate_mbps=result.bitrate_mbps,
-                    size_mb=result.size_mb,
+                download_speed_baseline = await baseline_calculator.calculate_baseline(
+                    video.storage_id
                 )
-                await video_service.update_video_metadata(video.id, video_data)
-            warning_threshold = min(
-                download_speed_baseline / 2,
-                config.warning_speed_threshold_mbps,
-            )
-            if result.download_speed_mbps < result.bitrate_mbps * 2:
-                status = ProbeStatus.CRITICAL
-            elif result.download_speed_mbps <= warning_threshold:
-                status = ProbeStatus.WARNING
-            else:
-                status = ProbeStatus.HEALTHY
-            probe = ProbeCreate(
-                video_id=video.id,
-                download_speed_mbps=result.download_speed_mbps,
-                status=status,
-            )
-            await probe_service.create(probe)
+                logger.info(f"{video.storage_id=} {download_speed_baseline=}")
+                if (
+                    (not video.size_mb)
+                    or (not video.bitrate_mbps)
+                    or (not video.duration_seconds)
+                ):
+                    video_data = VideoUpdate(
+                        duration_seconds=result.duration_seconds,
+                        bitrate_mbps=result.bitrate_mbps,
+                        size_mb=result.size_mb,
+                    )
+                    await video_service.update_video_metadata(video.id, video_data)
+                warning_threshold = min(
+                    download_speed_baseline / 2,
+                    config.warning_speed_threshold_mbps,
+                )
+                if result.download_speed_mbps < result.bitrate_mbps * 2:
+                    status = ProbeStatus.CRITICAL
+                elif result.download_speed_mbps <= warning_threshold:
+                    status = ProbeStatus.WARNING
+                else:
+                    status = ProbeStatus.HEALTHY
+                probe = ProbeCreate(
+                    video_id=video.id,
+                    download_speed_mbps=result.download_speed_mbps,
+                    status=status,
+                )
+                await probe_service.create(probe)
+            finally:
+                await asyncio.sleep(config.probe_delay_seconds)
 
         logger.info(f"Found {len(errors)} errors: {errors}")

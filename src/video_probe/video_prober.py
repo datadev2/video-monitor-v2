@@ -4,6 +4,7 @@ import time
 from typing import Final
 
 import aiohttp
+from loguru import logger
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -132,6 +133,12 @@ class VideoProber:
         stderr_text = stderr.decode(errors="replace")
 
         if process.returncode != 0:
+            status, reason = await self._probe_http_status(url)
+            logger.warning(
+                f"ffprobe failed for {url}: "
+                f"http_status={status} reason={reason!r} "
+                f"stderr={stderr_text.strip()!r}"
+            )
             if (
                 "Connection to tcp://" in stderr_text
                 or "timed out" in stderr_text.lower()
@@ -172,6 +179,31 @@ class VideoProber:
             size_bytes=size_bytes,
             duration_seconds=duration_seconds,
         )
+
+    async def _probe_http_status(self, url: str) -> tuple[int | None, str]:
+        """
+        Issue a lightweight request to capture the real HTTP status code.
+
+        ffprobe's own error output doesn't reveal the actual status code
+        for unhandled 4xx responses (e.g. rate limiting), so this makes
+        a minimal follow-up request purely for diagnostic logging.
+
+        Args:
+            url: Video URL.
+
+        Returns:
+            tuple[int | None, str]: HTTP status code (or None if the
+                request itself failed) and the reason/error text.
+        """
+        try:
+            async with aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=10),
+                headers={"User-Agent": self._user_agent},
+            ) as session:
+                async with session.get(url, headers={"Range": "bytes=0-0"}) as response:
+                    return response.status, response.reason or ""
+        except Exception as exc:
+            return None, str(exc)
 
     @retry(
         retry=retry_if_exception_type(RetryableVideoDownloadError),
@@ -229,9 +261,17 @@ class VideoProber:
                         if downloaded >= max_bytes:
                             break
 
-        except Exception as exc:
-            if "410" in str(exc):
+        except aiohttp.ClientResponseError as exc:
+            logger.warning(
+                f"Download failed for {url}: "
+                f"http_status={exc.status} message={exc.message!r}"
+            )
+            if exc.status == 410:
                 raise RetryableVideoDownloadError(str(exc))
+            raise VideoDownloadError(str(exc)) from exc
+
+        except Exception as exc:
+            logger.warning(f"Download failed for {url}: {exc}")
             raise VideoDownloadError(str(exc)) from exc
 
         elapsed = time.monotonic() - started_at
