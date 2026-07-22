@@ -238,5 +238,179 @@
     "server_group_id": 40,
     "storage": "st33.pimpbunny.com",
     "video_format": "_1080p.mp4"
+  },
+    {
+    "kvs_video_id": 127,
+    "server_group_id": 3,
+    "storage": "st1.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 5,
+    "server_group_id": 5,
+    "storage": "st3.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 5,
+    "server_group_id": 5,
+    "storage": "st3.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 110,
+    "server_group_id": 3,
+    "storage": "st1.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 115,
+    "server_group_id": 3,
+    "storage": "st1.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 13592,
+    "server_group_id": 4,
+    "storage": "st2.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 13711,
+    "server_group_id": 4,
+    "storage": "st2.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 13743,
+    "server_group_id": 4,
+    "storage": "st2.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+    {
+    "kvs_video_id": 15782,
+    "server_group_id": 4,
+    "storage": "st2.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 19637,
+    "server_group_id": 4,
+    "storage": "st2.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 28819,
+    "server_group_id": 3,
+    "storage": "st1.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 35756,
+    "server_group_id": 5,
+    "storage": "st3.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 35233,
+    "server_group_id": 5,
+    "storage": "st3.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 35787,
+    "server_group_id": 5,
+    "storage": "st3.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 35787,
+    "server_group_id": 5,
+    "storage": "st3.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 79454,
+    "server_group_id": 11,
+    "storage": "st9.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 75117,
+    "server_group_id": 11,
+    "storage": "st9.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 79142,
+    "server_group_id": 11,
+    "storage": "st9.pimpbunny.com",
+    "video_format": "_720p.mp4"
+  },
+  {
+    "kvs_video_id": 79456,
+    "server_group_id": 11,
+    "storage": "st9.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 79519,
+    "server_group_id": 11,
+    "storage": "st9.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 80053,
+    "server_group_id": 18,
+    "storage": "st12.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 80143,
+    "server_group_id": 20,
+    "storage": "st14.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 80089,
+    "server_group_id": 22,
+    "storage": "st16.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 101944,
+    "server_group_id": 7,
+    "storage": "st5.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 101548,
+    "server_group_id": 7,
+    "storage": "st5.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 101065,
+    "server_group_id": 7,
+    "storage": "st5.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 106731,
+    "server_group_id": 11,
+    "storage": "st9.pimpbunny.com",
+    "video_format": "_1080p.mp4"
+  },
+  {
+    "kvs_video_id": 93900,
+    "server_group_id": 7,
+    "storage": "st5.pimpbunny.com",
+    "video_format": "_1440p.mp4"
+  },
+  {
+    "kvs_video_id": 106955,
+    "server_group_id": 7,
+    "storage": "st5.pimpbunny.com",
+    "video_format": "_1440p.mp4"
   }
 ]
