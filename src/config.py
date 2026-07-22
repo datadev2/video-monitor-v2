@@ -29,6 +29,7 @@ class Config(BaseSettings):
     redis_dsn: RedisDsn
 
     min_baseline_speed_mbps: float = Field(default=1.0)
+    warning_speed_threshold_mbps: float = Field(default=20.0)
     monitoring_run_interval_minutes: int = Field(default=60)
 
     kvs_cv: str = Field(default="")

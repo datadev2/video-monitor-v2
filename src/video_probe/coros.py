@@ -1,5 +1,6 @@
 from loguru import logger
 
+from src.config import config
 from src.db import get_session
 from src.entities.probe.enums import ProbeStatus
 from src.entities.probe.schemas import ProbeCreate
@@ -95,9 +96,13 @@ async def run_video_probes() -> None:
                     size_mb=result.size_mb,
                 )
                 await video_service.update_video_metadata(video.id, video_data)
+            warning_threshold = min(
+                download_speed_baseline / 2,
+                config.warning_speed_threshold_mbps,
+            )
             if result.download_speed_mbps < result.bitrate_mbps * 2:
                 status = ProbeStatus.CRITICAL
-            elif result.download_speed_mbps <= download_speed_baseline / 2:
+            elif result.download_speed_mbps <= warning_threshold:
                 status = ProbeStatus.WARNING
             else:
                 status = ProbeStatus.HEALTHY
