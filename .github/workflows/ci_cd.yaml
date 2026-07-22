@@ -108,6 +108,16 @@ jobs:
           tags: |
             citadelbv/pb-accessibility-analysis:latest
 
+      - name: Copy compose & monitoring config to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.REMOTE_SSH_KEY }}
+          source: "docker-compose.yml,prometheus/prometheus.yaml"
+          target: "pb-accessibility-analysis"
+          strip_components: 0
+
       - name: Deploy to remote server
         uses: appleboy/ssh-action@v1.2.0
         with:
