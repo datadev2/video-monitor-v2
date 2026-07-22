@@ -38,7 +38,7 @@ services:
 
   api:
     image: citadelbv/pb-accessibility-analysis:latest
-    command: uvicorn src.main:app --port=8001
+    command: uvicorn src.main:app --host=0.0.0.0 --port=8001
     ports:
       - "8001:8001"
     depends_on:
@@ -67,7 +67,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: "gf_test_password"
+      GF_SECURITY_ADMIN_PASSWORD: "${GF_SECURITY_ADMIN_PASSWORD}"
     volumes:
       - grafanadata:/var/lib/grafana
     depends_on:
