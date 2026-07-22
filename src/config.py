@@ -49,4 +49,4 @@ class Config(BaseSettings):
         return self.mode == "TEST"
 
 
-config = Config()
+config = Config()  # type: ignore[call-arg]

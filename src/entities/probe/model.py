@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Float, DateTime, func
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
-
 from src.db import Base
 from src.entities.probe.enums import ProbeStatus
+
+if TYPE_CHECKING:
+    from src.entities.video.model import Video
 
 
 class Probe(Base):
@@ -28,6 +33,6 @@ class Probe(Base):
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
-    video: Mapped["Video"] = relationship(  # noqa: F821
+    video: Mapped[Video] = relationship(
         back_populates="probes",
     )

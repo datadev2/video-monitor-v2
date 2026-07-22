@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Text, Float, Integer, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db import Base
+
+if TYPE_CHECKING:
+    from src.entities.probe.model import Probe
+    from src.entities.storage.model import Storage
 
 
 class Video(Base):
@@ -27,5 +34,5 @@ class Video(Base):
     )
     is_bad: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    probes: Mapped[list["Probe"]] = relationship(back_populates="video")  # noqa: F821
-    storage: Mapped["Storage | None"] = relationship(back_populates="videos")  # noqa: F821
+    probes: Mapped[list[Probe]] = relationship(back_populates="video")
+    storage: Mapped[Storage | None] = relationship(back_populates="videos")
