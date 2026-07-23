@@ -93,6 +93,30 @@ class VideoService:
         """
         Register a probe failure for a video.
 
+        Marks the video as bad.
+
+        Args:
+            video: Video record for which the probe failed.
+
+        Returns:
+            VideoRead: Updated video record.
+        """
+        is_bad = True
+
+        last_error_date = datetime.now(timezone.utc)
+        video_data = VideoUpdate(
+            errors_count=1, is_bad=is_bad, last_error_date=last_error_date
+        )
+        updated_video = await self.dao.update(id=video.id, **video_data.model_dump())
+        await self.session.commit()
+        return VideoRead.model_validate(updated_video)
+
+    async def check_errors_and_mark_video_with_error(
+        self, video: VideoRead
+    ) -> VideoRead:
+        """
+        Register a probe failure for a video.
+
         Increments the error counter and marks the video as bad
         after three consecutive errors.
 
