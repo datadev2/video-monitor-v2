@@ -68,15 +68,19 @@ async def run_video_probes() -> None:
             try:
                 try:
                     result = await video_prober.probe(url)
-                    logger.info(result)
-                except (
-                    VideoMetadataError,
-                    VideoTooSmallError,
-                    VideoDownloadError,
-                ) as e:
-                    logger.warning(f"Probed {url} failed: {e}")
+                    logger.info(f"Successfully probed {url}")
+                except VideoTooSmallError as e:
+                    logger.warning(f"Probed {video} failed: {e}")
                     errors.append(url)
                     await video_service.mark_video_with_error(video)
+                    continue
+                except (
+                    VideoMetadataError,
+                    VideoDownloadError,
+                ) as e:
+                    logger.warning(f"Probed {video} failed: {e}")
+                    errors.append(url)
+                    await video_service.check_errors_and_mark_video_with_error(video)
                     continue
 
                 except RetryableVideoMetadataError as e:
