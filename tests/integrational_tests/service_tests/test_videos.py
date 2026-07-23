@@ -105,7 +105,7 @@ class TestVideoService:
         db_obj = await async_session.get(Video, video.id)
         assert db_obj.bitrate_mbps == 9.9
 
-    async def test_mark_video_with_error_under_limit(self, async_session):
+    async def test_mark_video_with_error_marks_bad_immediately(self, async_session):
         service = VideoService(async_session)
 
         video = Video(
@@ -113,7 +113,7 @@ class TestVideoService:
             kvs_id=200,
             server_group_id=10,
             video_format="1080p",
-            errors_count=1,
+            errors_count=0,
             is_bad=False,
         )
 
@@ -125,16 +125,44 @@ class TestVideoService:
             VideoRead.model_validate(video)
         )
 
-        assert video_read.errors_count == 2
-        assert video_read.is_bad is False
+        assert video_read.errors_count == 1
+        assert video_read.is_bad is True
         assert video_read.last_error_date is not None
 
-    async def test_mark_video_with_error_becomes_bad(self, async_session):
+    async def test_check_errors_and_mark_video_with_error_under_limit(
+        self, async_session
+    ):
         service = VideoService(async_session)
 
         video = Video(
             storage_id=1,
             kvs_id=201,
+            server_group_id=10,
+            video_format="1080p",
+            errors_count=1,
+            is_bad=False,
+        )
+
+        async_session.add(video)
+        await async_session.commit()
+        await async_session.refresh(video)
+
+        video_read = await service.check_errors_and_mark_video_with_error(
+            VideoRead.model_validate(video)
+        )
+
+        assert video_read.errors_count == 2
+        assert video_read.is_bad is False
+        assert video_read.last_error_date is not None
+
+    async def test_check_errors_and_mark_video_with_error_becomes_bad(
+        self, async_session
+    ):
+        service = VideoService(async_session)
+
+        video = Video(
+            storage_id=1,
+            kvs_id=202,
             server_group_id=10,
             video_format="1080p",
             errors_count=2,
@@ -145,7 +173,9 @@ class TestVideoService:
         await async_session.commit()
         await async_session.refresh(video)
 
-        result = await service.mark_video_with_error(VideoRead.model_validate(video))
+        result = await service.check_errors_and_mark_video_with_error(
+            VideoRead.model_validate(video)
+        )
 
         assert result.errors_count == 3
         assert result.is_bad is True
