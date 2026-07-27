@@ -9,7 +9,7 @@ class ProbeCreate(BaseModel):
     video_id: int
     download_speed_mbps: float
     status: ProbeStatus
-    created_at: datetime = Field(default=datetime.now(tz=timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
 
 class ProbeRead(BaseModel):
