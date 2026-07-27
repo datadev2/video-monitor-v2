@@ -133,10 +133,11 @@ class VideoProber:
         stderr_text = stderr.decode(errors="replace")
 
         if process.returncode != 0:
-            status, reason = await self._probe_http_status(url)
+            status, reason, headers = await self._probe_http_status(url)
             logger.warning(
                 f"ffprobe failed for {url}: "
                 f"http_status={status} reason={reason!r} "
+                f"headers={headers} "
                 f"stderr={stderr_text.strip()!r}"
             )
             if (
@@ -180,7 +181,9 @@ class VideoProber:
             duration_seconds=duration_seconds,
         )
 
-    async def _probe_http_status(self, url: str) -> tuple[int | None, str]:
+    async def _probe_http_status(
+        self, url: str
+    ) -> tuple[int | None, str, dict[str, str]]:
         """
         Issue a lightweight request to capture the real HTTP status code.
 
@@ -192,8 +195,9 @@ class VideoProber:
             url: Video URL.
 
         Returns:
-            tuple[int | None, str]: HTTP status code (or None if the
-                request itself failed) and the reason/error text.
+            tuple[int | None, str, dict[str, str]]: HTTP status code
+                (or None if the request itself failed), the reason/error
+                text, and the response headers (empty if unavailable).
         """
         try:
             async with aiohttp.ClientSession(
@@ -201,9 +205,13 @@ class VideoProber:
                 headers={"User-Agent": self._user_agent},
             ) as session:
                 async with session.get(url, headers={"Range": "bytes=0-0"}) as response:
-                    return response.status, response.reason or ""
+                    return (
+                        response.status,
+                        response.reason or "",
+                        dict(response.headers),
+                    )
         except Exception as exc:
-            return None, str(exc)
+            return None, str(exc), {}
 
     @retry(
         retry=retry_if_exception_type(RetryableVideoDownloadError),
@@ -264,7 +272,8 @@ class VideoProber:
         except aiohttp.ClientResponseError as exc:
             logger.warning(
                 f"Download failed for {url}: "
-                f"http_status={exc.status} message={exc.message!r}"
+                f"http_status={exc.status} message={exc.message!r} "
+                f"headers={dict(exc.headers) if exc.headers else {}}"
             )
             if exc.status == 410:
                 raise RetryableVideoDownloadError(str(exc))
