@@ -141,7 +141,8 @@ jobs:
             DB_PORT=${{ secrets.DB_PORT }}
             DB_NAME=${{ secrets.DB_NAME }}
 
-            REDIS_DSN=${{ secrets.REDIS_DSN }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            REDIS_DSN=redis://:${{ secrets.REDIS_PASSWORD }}@redis:6379/0
 
             VIDEO_MIN_SIZE_MB=${{ secrets.VIDEO_MIN_SIZE_MB }}
             VIDEOS_DOWNLOAD_SIZE_MB=${{ secrets.VIDEOS_DOWNLOAD_SIZE_MB }}
