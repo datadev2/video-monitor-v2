@@ -28,6 +28,21 @@ status_metric = Gauge(
 )
 
 
+missing_bitrate_metric = Gauge(
+    "video_missing_bitrate",
+    "Videos in rotation with no known bitrate, by storage. "
+    "These probes cannot run the CRITICAL check and are graded "
+    "on the storage baseline alone.",
+    ["storage_id", "storage_name"],
+)
+
+videos_in_rotation_metric = Gauge(
+    "video_in_rotation",
+    "Videos currently eligible for probing, by storage",
+    ["storage_id", "storage_name"],
+)
+
+
 class MetricsService:
     def update_metrics(self):
         baselines = redis_cli.get("baselines") or []
@@ -43,6 +58,15 @@ class MetricsService:
                 storage_id=item["storage_id"],
                 storage_name=item["storage_name"],
             ).set(item["avg_download_speed"])
+
+        missing_bitrate = redis_cli.get("missing_bitrate") or []
+        for item in missing_bitrate:
+            labels = {
+                "storage_id": str(item["storage_id"]),
+                "storage_name": item["storage_name"],
+            }
+            missing_bitrate_metric.labels(**labels).set(item["videos_without_bitrate"])
+            videos_in_rotation_metric.labels(**labels).set(item["videos_total"])
 
         health_statuses = redis_cli.get("health_statuses") or []
         for storage in health_statuses:
