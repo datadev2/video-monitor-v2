@@ -1,28 +1,48 @@
-class VideoTooSmallError(Exception):
+from src.entities.probe.enums import ProbeFailureReason
+
+
+class ProbeError(Exception):
+    """
+    Base class for probe failures.
+
+    Carries the classified failure reason alongside the HTTP status
+    that produced it, so callers can decide whether the failure is a
+    storage defect or a monitoring-side problem without re-parsing
+    error strings.
+    """
+
+    default_reason: ProbeFailureReason = ProbeFailureReason.UNKNOWN
+
+    def __init__(
+        self,
+        message: str,
+        reason: ProbeFailureReason | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason if reason is not None else self.default_reason
+        self.status_code = status_code
+
+
+class VideoTooSmallError(ProbeError):
     """Exception raised when video too small for probe"""
 
-    pass
+    default_reason = ProbeFailureReason.VIDEO_TOO_SMALL
 
 
-class VideoMetadataError(Exception):
+class VideoMetadataError(ProbeError):
     """Exception raised when video metadata is invalid"""
 
-    pass
+    default_reason = ProbeFailureReason.INVALID_METADATA
 
 
-class RetryableVideoMetadataError(Exception):
-    """Exception raised when metadata request will be retried"""
+class RetryableProbeError(ProbeError):
+    """Exception raised when nothing answered and the probe will be retried"""
 
-    pass
+    default_reason = ProbeFailureReason.STORAGE_UNREACHABLE
 
 
-class VideoDownloadError(Exception):
+class VideoDownloadError(ProbeError):
     """Exception raised when video download fails"""
 
-    pass
-
-
-class RetryableVideoDownloadError(Exception):
-    """Exception raised when video download fails and needs retry"""
-
-    pass
+    default_reason = ProbeFailureReason.UNKNOWN

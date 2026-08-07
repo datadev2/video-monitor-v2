@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from src.config import config
 from src.db import Base
-from src.entities.probe.enums import ProbeStatus
+from src.entities.probe.enums import ProbeFailureReason, ProbeStatus
 
 from src.entities.probe.model import Probe
 from src.entities.video.model import Video
@@ -76,23 +76,32 @@ def parse_datetime_fields(data: list[dict], *fields: str) -> None:
 async def prepare_database(engine):
     assert config.is_test_mode
 
-    probe_status_enum = PgEnum(
-        ProbeStatus,
-        name="probe_status",
-        values_callable=lambda obj: [e.value for e in obj],
-    )
+    enums = [
+        PgEnum(
+            ProbeStatus,
+            name="probe_status",
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+        PgEnum(
+            ProbeFailureReason,
+            name="probe_failure_reason",
+            values_callable=lambda obj: [e.value for e in obj],
+        ),
+    ]
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-        await conn.execute(sa.text("DROP TYPE IF EXISTS probe_status CASCADE"))
+        for enum in enums:
+            await conn.execute(sa.text(f"DROP TYPE IF EXISTS {enum.name} CASCADE"))
 
-        await conn.run_sync(
-            lambda sync_conn: probe_status_enum.create(
-                sync_conn,
-                checkfirst=True,
+        for enum in enums:
+            await conn.run_sync(
+                lambda sync_conn, enum=enum: enum.create(
+                    sync_conn,
+                    checkfirst=True,
+                )
             )
-        )
 
         await conn.run_sync(Base.metadata.create_all)
 

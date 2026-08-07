@@ -25,8 +25,15 @@ class DownloadSpeedAnalytics(BaseModel):
         return round(value, 2)
 
 
+class MissingBitrateAnalytics(BaseModel):
+    storage_id: int
+    storage_name: str
+    videos_without_bitrate: int
+    videos_total: int
+
+
 class StatusData(BaseModel):
-    status: Literal["Healthy", "Warning", "Critical"]
+    status: Literal["Healthy", "Warning", "Critical", "Failed"]
     count: int
 
 
@@ -40,3 +47,4 @@ class Analytics(BaseModel):
     baseline: Sequence[BaselineAnalytics]
     download_speed: Sequence[DownloadSpeedAnalytics]
     statuses: Sequence[StatusAnalytics]
+    missing_bitrate: Sequence[MissingBitrateAnalytics]

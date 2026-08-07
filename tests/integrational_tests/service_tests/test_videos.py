@@ -129,16 +129,14 @@ class TestVideoService:
         assert video_read.is_bad is True
         assert video_read.last_error_date is not None
 
-    async def test_check_errors_and_mark_video_with_error_under_limit(
-        self, async_session
-    ):
+    async def test_register_storage_failure_counts_error(self, async_session):
         service = VideoService(async_session)
 
         video = Video(
             storage_id=1,
             kvs_id=201,
             server_group_id=10,
-            video_format="1080p",
+            video_format="_1080p.mp4",
             errors_count=1,
             is_bad=False,
         )
@@ -147,7 +145,7 @@ class TestVideoService:
         await async_session.commit()
         await async_session.refresh(video)
 
-        video_read = await service.check_errors_and_mark_video_with_error(
+        video_read = await service.register_storage_failure(
             VideoRead.model_validate(video)
         )
 
@@ -155,16 +153,15 @@ class TestVideoService:
         assert video_read.is_bad is False
         assert video_read.last_error_date is not None
 
-    async def test_check_errors_and_mark_video_with_error_becomes_bad(
-        self, async_session
-    ):
+    async def test_register_storage_failure_never_marks_bad(self, async_session):
+        """A storage defect must stay visible, however often it repeats."""
         service = VideoService(async_session)
 
         video = Video(
             storage_id=1,
             kvs_id=202,
             server_group_id=10,
-            video_format="1080p",
+            video_format="_1080p.mp4",
             errors_count=2,
             is_bad=False,
         )
@@ -173,9 +170,12 @@ class TestVideoService:
         await async_session.commit()
         await async_session.refresh(video)
 
-        result = await service.check_errors_and_mark_video_with_error(
-            VideoRead.model_validate(video)
-        )
+        result = await service.register_storage_failure(VideoRead.model_validate(video))
 
         assert result.errors_count == 3
-        assert result.is_bad is True
+        assert result.is_bad is False
+
+        result = await service.register_storage_failure(result)
+
+        assert result.errors_count == 4
+        assert result.is_bad is False

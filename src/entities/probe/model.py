@@ -8,7 +8,7 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 from src.db import Base
-from src.entities.probe.enums import ProbeStatus
+from src.entities.probe.enums import ProbeFailureReason, ProbeStatus
 
 if TYPE_CHECKING:
     from src.entities.video.model import Video
@@ -28,6 +28,15 @@ class Probe(Base):
             create_type=False,
         ),
         default=ProbeStatus.HEALTHY.value,
+    )
+    failure_reason: Mapped[ProbeFailureReason | None] = mapped_column(
+        PgEnum(
+            ProbeFailureReason,
+            name="probe_failure_reason",
+            values_callable=lambda obj: [e.value for e in obj],
+            create_type=False,
+        ),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True

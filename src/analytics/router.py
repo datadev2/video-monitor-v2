@@ -25,6 +25,13 @@ async def get_analytics(session: AsyncSession = Depends(get_async_session)):
 
     health_statuses = await analytics_service.get_health_statuses()
     logger.info(health_statuses)
+
+    missing_bitrate = await analytics_service.get_missing_bitrate()
+    logger.info(missing_bitrate)
+
     return Analytics(
-        baseline=baselines, download_speed=avg_download_speeds, statuses=health_statuses
+        baseline=baselines,
+        download_speed=avg_download_speeds,
+        statuses=health_statuses,
+        missing_bitrate=missing_bitrate,
     )

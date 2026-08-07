@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.analytics.schemas import (
     BaselineAnalytics,
     DownloadSpeedAnalytics,
+    MissingBitrateAnalytics,
     StatusAnalytics,
     StatusData,
 )
@@ -48,12 +49,48 @@ class AnalyticsService:
             )
             .join(Video, Video.id == Probe.video_id)
             .join(Storage, Storage.id == Video.storage_id)
-            .where(Probe.created_at > dt)
+            .where(
+                Probe.created_at > dt,
+                Probe.download_speed_mbps.is_not(None),
+            )
             .group_by(Storage.id)
         )
         result = await self.session.execute(stmt)
         rows = result.mappings().all()
         return [DownloadSpeedAnalytics(**row) for row in rows]
+
+    async def get_missing_bitrate(self) -> Sequence[MissingBitrateAnalytics]:
+        """
+        Count videos in rotation that have no known bitrate.
+
+        Without a bitrate the CRITICAL rule cannot run and the probe is
+        graded on the storage baseline alone, so a storage where this
+        creeps up is being monitored more weakly than it looks.
+
+        Videos already excluded from probing are ignored - they are not
+        being graded either way. Every storage is reported, including
+        those with a count of zero, so the gauge never keeps a stale
+        value after a storage recovers.
+
+        Returns:
+            Sequence[MissingBitrateAnalytics]: Per-storage counts.
+        """
+        stmt = (
+            select(
+                Storage.id.label("storage_id"),
+                Storage.name.label("storage_name"),
+                func.count(Video.id)
+                .filter(Video.bitrate_mbps.is_(None))
+                .label("videos_without_bitrate"),
+                func.count(Video.id).label("videos_total"),
+            )
+            .join(Video, Video.storage_id == Storage.id)
+            .where(Video.is_bad.is_(False))
+            .group_by(Storage.id)
+        )
+        result = await self.session.execute(stmt)
+        rows = result.mappings().all()
+        return [MissingBitrateAnalytics(**row) for row in rows]
 
     async def get_health_statuses(self) -> Sequence[StatusAnalytics]:
         mappings = await self._get_health_statuses_sql()

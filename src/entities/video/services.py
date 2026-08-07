@@ -91,12 +91,15 @@ class VideoService:
 
     async def mark_video_with_error(self, video: VideoRead) -> VideoRead:
         """
-        Register a probe failure for a video.
+        Exclude a video that cannot serve as a probe sample.
 
-        Marks the video as bad.
+        Marks the video as bad. This is a judgement about the video, not
+        about the storage: a clip that is too small downloads instantly
+        and yields no meaningful speed measurement, so it is dropped from
+        future runs.
 
         Args:
-            video: Video record for which the probe failed.
+            video: Video that is unusable for probing.
 
         Returns:
             VideoRead: Updated video record.
@@ -111,29 +114,28 @@ class VideoService:
         await self.session.commit()
         return VideoRead.model_validate(updated_video)
 
-    async def check_errors_and_mark_video_with_error(
-        self, video: VideoRead
-    ) -> VideoRead:
+    async def register_storage_failure(self, video: VideoRead) -> VideoRead:
         """
-        Register a probe failure for a video.
+        Record a probe failure caused by the storage.
 
-        Increments the error counter and marks the video as bad
-        after three consecutive errors.
+        Increments the error counter and timestamps the failure, but
+        deliberately leaves `is_bad` alone: the video is a perfectly good
+        sample, it is the storage that failed to serve it. Marking it bad
+        would remove the video from probing and quietly bury the defect
+        this service exists to surface.
 
         Args:
-            video: Video record for which the probe failed.
+            video: Video whose probe failed through no fault of its own.
 
         Returns:
             VideoRead: Updated video record.
         """
         errors_count = video.errors_count + 1
-        if errors_count >= 3:
-            is_bad = True
-        else:
-            is_bad = False
         last_error_date = datetime.now(timezone.utc)
         video_data = VideoUpdate(
-            errors_count=errors_count, is_bad=is_bad, last_error_date=last_error_date
+            errors_count=errors_count,
+            is_bad=video.is_bad,
+            last_error_date=last_error_date,
         )
         updated_video = await self.dao.update(id=video.id, **video_data.model_dump())
         await self.session.commit()
