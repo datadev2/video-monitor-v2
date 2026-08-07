@@ -119,25 +119,23 @@ Stores a single monitoring result.
 ## Probe Lifecycle
 
 1. Select videos scheduled for probing.
-2. Download the head of the video, measuring throughput.
-3. Read the full file size from `Content-Length`, rejecting tiny videos.
-4. Extract metadata from the downloaded sample via ffprobe.
+2. Extract metadata with ffprobe, rejecting tiny videos.
+3. Download a sample of the video.
+4. Measure download speed.
 5. Calculate storage baseline.
 6. Determine probe status.
 7. Save probe result.
 
-**One probe costs one request.** Metadata used to be fetched by pointing
-ffprobe at the URL, which meant every probe hit `get_file.php` twice (three
-times when the diagnostic status check ran) and counted that many times
-against the KVS anti-hotlink limiter. ffprobe now reads a temporary file
-holding the already-downloaded sample.
+**A probe costs two requests**, and that is a deliberate trade-off. Reading
+metadata out of the already-downloaded sample would make it one, but the
+sample is only the head of the file, so it works solely for containers whose
+moov atom sits at the front. In practice one video in two or three has it at
+the tail, which left the bitrate unknown and silently disabled the CRITICAL
+check for them. Pointing ffprobe at the URL lets it seek with range requests
+and read the tail, so metadata comes back for every video.
 
-The sample is the head of the file, so metadata is only readable when the moov
-atom sits at the front — the layout used for streaming. When it does not, the
-probe still reports the download speed it measured and metadata falls back to
-whatever a previous run stored. Bitrate is derived from the full size and
-duration rather than taken from ffprobe, whose value would describe only the
-truncated sample.
+The cost is that each probe counts twice against the KVS anti-hotlink limiter,
+which makes the IP whitelist below load-bearing rather than merely convenient.
 
 ---
 

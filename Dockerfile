@@ -37,6 +37,12 @@ COPY --from=builder /app /app
 
 RUN chown -R prod:prod /app
 
+# Celery beat persists its schedule here. The directory must exist in the
+# image and be owned by prod: docker copies ownership from the image path
+# when it creates a fresh named volume, and a root-owned /data would leave
+# beat unable to write its state.
+RUN mkdir -p /data && chown prod:prod /data
+
 ENV PATH="/app/.venv/bin:$PATH"
 
 USER prod
