@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from pydantic import BaseModel
@@ -24,21 +23,12 @@ class VideoProbe(BaseModel):
 
 
 class VideoMetadata(BaseModel):
-    bitrate_mbps: float | None = None
+    bitrate_mbps: float
+    size_bytes: int
     duration_seconds: float | None = None
 
 
-@dataclass
-class VideoSample:
-    """
-    The downloaded head of a video plus the transfer statistics.
-
-    A plain dataclass rather than a pydantic model: `data` holds tens of
-    megabytes and there is nothing here worth validating.
-    """
-
-    data: bytes
-    total_size_bytes: int
-    downloaded_bytes: int
+class DownloadResult(BaseModel):
     download_speed_mbps: float
+    downloaded_bytes: int
     duration_seconds: float

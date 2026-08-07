@@ -36,13 +36,18 @@ services:
 
   beat:
     image: citadelbv/pb-accessibility-analysis:latest
-    command: celery -A src.celery_app:celery_app beat --loglevel=INFO
+    command: >
+      celery -A src.celery_app:celery_app beat
+      --loglevel=INFO
+      --schedule=/data/celerybeat-schedule
     depends_on:
       - redis
     environment:
       REDIS_DSN: redis://:${REDIS_PASSWORD}@redis:6379/0
     env_file:
       - .env
+    volumes:
+      - beatdata:/data
     restart: always
 
   api:
@@ -85,5 +90,6 @@ services:
 volumes:
   dbdata:
   redisdata:
+  beatdata:
   promdata:
   grafanadata:
