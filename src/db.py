@@ -12,14 +12,13 @@ async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_async_session() -> AsyncIterator[AsyncSession]:
+    """Yield a session for FastAPI's dependency injection."""
     async with async_session() as session:
         yield session
 
 
-@asynccontextmanager
-async def get_session():
-    async with async_session() as session:
-        yield session
+# The same generator, wrapped for use with `async with` outside a request.
+get_session = asynccontextmanager(get_async_session)
 
 
 class Base(DeclarativeBase):

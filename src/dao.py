@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Protocol, TypeVar, Generic, Type
+from typing import Any, Protocol
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,11 +9,8 @@ class HasId(Protocol):
     id: Any
 
 
-T = TypeVar("T", bound=HasId)
-
-
-class BaseDAO(Generic[T]):
-    model: Type[T]
+class BaseDAO[T: HasId]:
+    model: type[T]
 
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -40,9 +37,9 @@ class BaseDAO(Generic[T]):
     ) -> Sequence[T]:
         stmt = select(self.model).filter_by(**filters)
 
-        if limit:
+        if limit is not None:
             stmt = stmt.limit(limit)
-        if offset:
+        if offset is not None:
             stmt = stmt.offset(offset)
 
         result = await self.session.execute(stmt)

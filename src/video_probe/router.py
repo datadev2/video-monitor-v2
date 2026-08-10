@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from starlette.responses import JSONResponse
 
 from src.auth import basic_auth
-from src.video_probe.dependencies import probe_dependencies
+from src.video_probe.dependencies import probe_video
 from src.video_probe.schemas import VideoProbe, VideoLink
 from src.video_probe.tasks import probe_video_task, run_video_probes_task
 
@@ -17,7 +17,7 @@ router = APIRouter(
 
 @router.post("/", response_model=VideoProbe, status_code=201)
 async def probe(
-    video_probe: Annotated[VideoProbe, Depends(probe_dependencies.probe_video)],
+    video_probe: Annotated[VideoProbe, Depends(probe_video)],
 ) -> VideoProbe:
     return video_probe
 

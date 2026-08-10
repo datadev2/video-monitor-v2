@@ -91,6 +91,29 @@ def _warn_no_bitrate(video: VideoRead, url: str, result: VideoProbe) -> None:
     )
 
 
+_FAILURE_HINTS: dict[ProbeFailureReason, str] = {
+    ProbeFailureReason.VIDEO_TOO_SMALL: (
+        "video is too small to measure against, excluding it"
+    ),
+    ProbeFailureReason.LINK_REJECTED: (
+        "link rejected at the edge - check that this server's IP is still "
+        "in the KVS anti-hotlink whitelist"
+    ),
+    ProbeFailureReason.IP_BLOCKED: "this server's IP is blocked by KVS anti-hotlink",
+    ProbeFailureReason.RATE_LIMITED: "probing too often for this IP",
+    ProbeFailureReason.FILE_MISSING_ON_NODE: (
+        "file is missing on the storage node it was redirected to"
+    ),
+    ProbeFailureReason.FILE_MISSING_IN_CATALOG: "KVS could not resolve the file at all",
+    ProbeFailureReason.ORIGIN_TLS_ERROR: (
+        "Cloudflare could not validate the origin's SSL certificate"
+    ),
+    ProbeFailureReason.ORIGIN_UNREACHABLE: "Cloudflare could not reach the origin server",
+}
+
+_DEFAULT_FAILURE_HINT = "storage did not serve the file"
+
+
 def _log_probe_failure(video: VideoRead, url: str, error: ProbeError) -> None:
     """
     Log a probe failure, naming whose problem it is.
@@ -101,28 +124,7 @@ def _log_probe_failure(video: VideoRead, url: str, error: ProbeError) -> None:
         error: Raised probe error carrying the classified reason.
     """
     reason = error.reason
-
-    if reason is ProbeFailureReason.VIDEO_TOO_SMALL:
-        hint = "video is too small to measure against, excluding it"
-    elif reason is ProbeFailureReason.LINK_REJECTED:
-        hint = (
-            "link rejected at the edge - check that this server's IP is still "
-            "in the KVS anti-hotlink whitelist"
-        )
-    elif reason is ProbeFailureReason.IP_BLOCKED:
-        hint = "this server's IP is blocked by KVS anti-hotlink"
-    elif reason is ProbeFailureReason.RATE_LIMITED:
-        hint = "probing too often for this IP"
-    elif reason is ProbeFailureReason.FILE_MISSING_ON_NODE:
-        hint = "file is missing on the storage node it was redirected to"
-    elif reason is ProbeFailureReason.FILE_MISSING_IN_CATALOG:
-        hint = "KVS could not resolve the file at all"
-    elif reason is ProbeFailureReason.ORIGIN_TLS_ERROR:
-        hint = "Cloudflare could not validate the origin's SSL certificate"
-    elif reason is ProbeFailureReason.ORIGIN_UNREACHABLE:
-        hint = "Cloudflare could not reach the origin server"
-    else:
-        hint = "storage did not serve the file"
+    hint = _FAILURE_HINTS.get(reason, _DEFAULT_FAILURE_HINT)
 
     logger.warning(
         f"Probe failed reason={reason.value} "
@@ -130,6 +132,125 @@ def _log_probe_failure(video: VideoRead, url: str, error: ProbeError) -> None:
         f"video_id={video.id} kvs_id={video.kvs_id} "
         f"({hint}): {url}: {error}"
     )
+
+
+def _grade_probe(
+    result: VideoProbe,
+    bitrate_mbps: float | None,
+    baseline_mbps: float,
+) -> ProbeStatus:
+    """
+    Grade a measured download speed.
+
+    A speed below twice the video's own bitrate cannot sustain playback,
+    which is CRITICAL regardless of how the storage normally performs.
+    Without a known bitrate that rule cannot run, so the probe falls back
+    to comparing against the storage baseline alone.
+
+    Args:
+        result: Successful probe result.
+        bitrate_mbps: Video bitrate, or None if it was never established.
+        baseline_mbps: Baseline download speed for the storage.
+
+    Returns:
+        ProbeStatus: Health status for this probe.
+    """
+    warning_threshold = min(
+        baseline_mbps / 2,
+        config.warning_speed_threshold_mbps,
+    )
+
+    if bitrate_mbps and result.download_speed_mbps < bitrate_mbps * 2:
+        return ProbeStatus.CRITICAL
+
+    if result.download_speed_mbps <= warning_threshold:
+        return ProbeStatus.WARNING
+
+    return ProbeStatus.HEALTHY
+
+
+async def _handle_probe_failure(
+    video: VideoRead,
+    url: str,
+    error: ProbeError,
+    video_service: VideoService,
+    probe_service: ProbeService,
+) -> None:
+    """
+    Record a failed probe and apply its verdict to the video.
+
+    Args:
+        video: Video the probe was run for.
+        url: Generated video URL.
+        error: Raised probe error carrying the classified reason.
+        video_service: Service used to update the video.
+        probe_service: Service used to persist the probe.
+    """
+    _log_probe_failure(video, url, error)
+    await _record_failed_probe(probe_service, video, error.reason)
+
+    if error.reason.makes_video_unusable:
+        await video_service.mark_video_with_error(video)
+    elif error.reason.is_storage_fault:
+        await video_service.register_storage_failure(video)
+
+
+async def _probe_one_video(
+    video: VideoRead,
+    url: str,
+    video_service: VideoService,
+    probe_service: ProbeService,
+    baseline_calculator: BaselineCalculator,
+) -> bool:
+    """
+    Probe a single video and persist the outcome.
+
+    Args:
+        video: Video to probe.
+        url: Generated video URL.
+        video_service: Service used to update the video.
+        probe_service: Service used to persist the probe.
+        baseline_calculator: Calculator for the storage baseline.
+
+    Returns:
+        bool: True if the probe yielded a speed measurement.
+    """
+    try:
+        result = await video_prober.probe(url)
+    except ProbeError as e:
+        await _handle_probe_failure(video, url, e, video_service, probe_service)
+        return False
+
+    logger.info(f"Successfully probed {url}")
+
+    baseline_mbps = await baseline_calculator.calculate_baseline(video.storage_id)
+    logger.info(f"{video.storage_id=} {baseline_mbps=}")
+
+    if not (video.size_mb and video.bitrate_mbps and video.duration_seconds):
+        await video_service.update_video_metadata(
+            video.id,
+            VideoUpdate(
+                duration_seconds=result.duration_seconds or video.duration_seconds,
+                bitrate_mbps=result.bitrate_mbps or video.bitrate_mbps,
+                size_mb=result.size_mb,
+            ),
+        )
+
+    # Metadata can be missing when the sample was unparsable, so
+    # fall back to whatever a previous run stored for this video.
+    bitrate_mbps = result.bitrate_mbps or video.bitrate_mbps
+
+    if not bitrate_mbps:
+        _warn_no_bitrate(video, url, result)
+
+    await probe_service.create(
+        ProbeCreate(
+            video_id=video.id,
+            download_speed_mbps=result.download_speed_mbps,
+            status=_grade_probe(result, bitrate_mbps, baseline_mbps),
+        )
+    )
+    return True
 
 
 async def run_video_probes() -> None:
@@ -147,15 +268,17 @@ async def run_video_probes() -> None:
     - persists probe results;
     - tracks videos with repeated probe failures.
 
-    Videos that fail probing three times are automatically
-    marked as bad and excluded from future probe runs.
+    Every video is followed by a fixed delay, successful or not, so a
+    run paces itself against the storages instead of bursting.
     """
     async with get_session() as session:
         video_service = VideoService(session)
         probe_service = ProbeService(session)
         baseline_calculator = BaselineCalculator(session)
+
         videos = await video_service.get_videos_for_probe()
-        errors = []
+        errors: list[str] = []
+
         for video in videos:
             url = video_link_generator.generate_kvs_link(
                 server_group_id=video.server_group_id,
@@ -164,59 +287,15 @@ async def run_video_probes() -> None:
             )
 
             try:
-                try:
-                    result = await video_prober.probe(url)
-                    logger.info(f"Successfully probed {url}")
-                except ProbeError as e:
-                    _log_probe_failure(video, url, e)
+                succeeded = await _probe_one_video(
+                    video,
+                    url,
+                    video_service,
+                    probe_service,
+                    baseline_calculator,
+                )
+                if not succeeded:
                     errors.append(url)
-                    await _record_failed_probe(probe_service, video, e.reason)
-
-                    if e.reason.makes_video_unusable:
-                        await video_service.mark_video_with_error(video)
-                    elif e.reason.is_storage_fault:
-                        await video_service.register_storage_failure(video)
-                    continue
-
-                download_speed_baseline = await baseline_calculator.calculate_baseline(
-                    video.storage_id
-                )
-                logger.info(f"{video.storage_id=} {download_speed_baseline=}")
-                if (
-                    (not video.size_mb)
-                    or (not video.bitrate_mbps)
-                    or (not video.duration_seconds)
-                ):
-                    video_data = VideoUpdate(
-                        duration_seconds=result.duration_seconds
-                        or video.duration_seconds,
-                        bitrate_mbps=result.bitrate_mbps or video.bitrate_mbps,
-                        size_mb=result.size_mb,
-                    )
-                    await video_service.update_video_metadata(video.id, video_data)
-                warning_threshold = min(
-                    download_speed_baseline / 2,
-                    config.warning_speed_threshold_mbps,
-                )
-                # Metadata can be missing when the sample was unparsable, so
-                # fall back to whatever a previous run stored for this video.
-                bitrate_mbps = result.bitrate_mbps or video.bitrate_mbps
-
-                if not bitrate_mbps:
-                    _warn_no_bitrate(video, url, result)
-
-                if bitrate_mbps and result.download_speed_mbps < bitrate_mbps * 2:
-                    status = ProbeStatus.CRITICAL
-                elif result.download_speed_mbps <= warning_threshold:
-                    status = ProbeStatus.WARNING
-                else:
-                    status = ProbeStatus.HEALTHY
-                probe = ProbeCreate(
-                    video_id=video.id,
-                    download_speed_mbps=result.download_speed_mbps,
-                    status=status,
-                )
-                await probe_service.create(probe)
             finally:
                 await asyncio.sleep(config.probe_delay_seconds)
 

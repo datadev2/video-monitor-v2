@@ -1,4 +1,5 @@
 import secrets
+from typing import Annotated
 
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBasicCredentials, HTTPBasic
@@ -6,8 +7,12 @@ from starlette import status
 
 from src.config import config
 
+security = HTTPBasic()
 
-def basic_auth(credentials: HTTPBasicCredentials = Depends(HTTPBasic())):
+
+def basic_auth(
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> HTTPBasicCredentials:
     current_username_bytes = credentials.username.encode("utf8")
     current_password_bytes = credentials.password.encode("utf8")
 

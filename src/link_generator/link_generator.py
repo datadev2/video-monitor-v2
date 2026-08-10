@@ -8,7 +8,7 @@ from src.config import config
 class VideoLinkGenerator:
     """Generates signed KVS video URLs."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.base_url = "https://pimpbunny.com"
         self.cv = config.kvs_cv
         self.ahv = config.kvs_ahv
@@ -19,7 +19,7 @@ class VideoLinkGenerator:
         server_group_id: int,
         video_id: int,
         video_format: str,
-    ):
+    ) -> str:
         """
         Generate a signed KVS video URL.
 
@@ -117,15 +117,11 @@ class VideoLinkGenerator:
             str: Encoded hash.
         """
         hash_list = list(hash_value)
+        length = len(hash_list)
 
-        for i in range(len(hash_list)):
-            new_pos = i
-
-            for j in range(i, len(ahv)):
-                new_pos += int(ahv[j])
-
-            while new_pos >= len(hash_list):
-                new_pos -= len(hash_list)
+        for i in range(length):
+            shift = sum(int(digit) for digit in ahv[i:])
+            new_pos = (i + shift) % length
 
             hash_list[i], hash_list[new_pos] = (
                 hash_list[new_pos],

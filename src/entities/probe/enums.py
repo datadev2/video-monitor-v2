@@ -48,6 +48,32 @@ class ProbeFailureReason(Enum):
         return self in _STORAGE_FAULTS
 
     @property
+    def affects_storage_health(self) -> bool:
+        """
+        Whether the storage was down or served nothing at all.
+
+        Failed sits next to Warning and Critical, so it has to mean the
+        same kind of thing they do: a verdict on delivery. It is reserved
+        for the storage being unreachable, or reachable and returning no
+        bytes - the floor of the same scale that Warning and Critical
+        measure in Mbps.
+
+        This is narrower than `is_storage_fault`, and the gap is the
+        point. Two kinds of failure are storage faults yet say nothing
+        about delivery:
+
+        - a missing file: the probe asked for something that no longer
+          exists, so the storage was never given a chance to serve it;
+        - unreadable metadata: the bytes arrived, ffprobe simply could
+          not find a bitrate in the container.
+
+        Both would let a content cleanup, or a moov atom at the tail of
+        a file, read as a degraded storage. They stay visible through
+        the per-reason failure breakdown instead.
+        """
+        return self in HEALTH_AFFECTING_REASONS
+
+    @property
     def makes_video_unusable(self) -> bool:
         """
         Whether the video can never yield a measurement again.
@@ -70,6 +96,22 @@ _STORAGE_FAULTS = frozenset(
         ProbeFailureReason.ORIGIN_UNREACHABLE,
         ProbeFailureReason.ORIGIN_TLS_ERROR,
         ProbeFailureReason.INVALID_METADATA,
+    }
+)
+
+#: Reasons that count against a storage in the health status gauge:
+#: the storage was unreachable, or reachable and served no bytes.
+#:
+#: Deliberately absent: a missing file (nothing was asked of the storage
+#: that it could have served) and unreadable metadata (the bytes arrived
+#: fine, we just could not parse them). Both stay visible in the
+#: per-reason failure breakdown. See `affects_storage_health`.
+HEALTH_AFFECTING_REASONS = frozenset(
+    {
+        ProbeFailureReason.STORAGE_ERROR,
+        ProbeFailureReason.STORAGE_UNREACHABLE,
+        ProbeFailureReason.ORIGIN_UNREACHABLE,
+        ProbeFailureReason.ORIGIN_TLS_ERROR,
     }
 )
 

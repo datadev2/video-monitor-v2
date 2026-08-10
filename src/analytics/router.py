@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,23 +17,18 @@ router = APIRouter(
 
 
 @router.get("/")
-async def get_analytics(session: AsyncSession = Depends(get_async_session)):
+async def get_analytics(
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+) -> Analytics:
     analytics_service = AnalyticsService(session)
-    baselines = await analytics_service.get_baselines()
-    logger.info(baselines)
 
-    avg_download_speeds = await analytics_service.get_download_speed()
-    logger.info(avg_download_speeds)
-
-    health_statuses = await analytics_service.get_health_statuses()
-    logger.info(health_statuses)
-
-    missing_bitrate = await analytics_service.get_missing_bitrate()
-    logger.info(missing_bitrate)
-
-    return Analytics(
-        baseline=baselines,
-        download_speed=avg_download_speeds,
-        statuses=health_statuses,
-        missing_bitrate=missing_bitrate,
+    analytics = Analytics(
+        baseline=await analytics_service.get_baselines(),
+        download_speed=await analytics_service.get_download_speed(),
+        statuses=await analytics_service.get_health_statuses(),
+        missing_bitrate=await analytics_service.get_missing_bitrate(),
+        failures=await analytics_service.get_failure_breakdown(),
     )
+    logger.info(analytics)
+
+    return analytics

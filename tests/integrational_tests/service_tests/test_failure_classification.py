@@ -1,6 +1,6 @@
 import pytest
 
-from src.entities.probe.enums import ProbeFailureReason
+from src.entities.probe.enums import HEALTH_AFFECTING_REASONS, ProbeFailureReason
 from src.video_probe.video_prober import VideoProber
 
 CLOUDFLARE_HEADERS = {
@@ -87,6 +87,80 @@ class TestStorageFaultAttribution:
     def test_monitoring_side_failures_are_not_storage_faults(self, reason):
         """A rejected link or a blocked IP says nothing about the storage."""
         assert reason.is_storage_fault is False
+
+
+class TestStorageHealthAttribution:
+    """
+    Failed means the storage was down or returned no bytes.
+
+    `affects_storage_health` is deliberately narrower than
+    `is_storage_fault`: a missing file and an unparsable container are
+    both storage faults, yet neither is a verdict on delivery.
+    """
+
+    @pytest.mark.parametrize(
+        "reason",
+        [
+            ProbeFailureReason.STORAGE_ERROR,
+            ProbeFailureReason.STORAGE_UNREACHABLE,
+            ProbeFailureReason.ORIGIN_UNREACHABLE,
+            ProbeFailureReason.ORIGIN_TLS_ERROR,
+        ],
+    )
+    def test_delivery_failures_affect_health(self, reason):
+        assert reason.affects_storage_health is True
+
+    @pytest.mark.parametrize(
+        "reason",
+        [
+            ProbeFailureReason.FILE_MISSING_ON_NODE,
+            ProbeFailureReason.FILE_MISSING_IN_CATALOG,
+            ProbeFailureReason.INVALID_METADATA,
+            ProbeFailureReason.LINK_REJECTED,
+            ProbeFailureReason.IP_BLOCKED,
+            ProbeFailureReason.RATE_LIMITED,
+            ProbeFailureReason.VIDEO_TOO_SMALL,
+            ProbeFailureReason.UNKNOWN,
+        ],
+    )
+    def test_non_delivery_failures_do_not_affect_health(self, reason):
+        assert reason.affects_storage_health is False
+
+    @pytest.mark.parametrize(
+        "reason",
+        [
+            ProbeFailureReason.FILE_MISSING_ON_NODE,
+            ProbeFailureReason.FILE_MISSING_IN_CATALOG,
+            ProbeFailureReason.INVALID_METADATA,
+        ],
+    )
+    def test_faults_that_are_not_health_signals(self, reason):
+        """The whole point of keeping the two properties apart."""
+        assert reason.is_storage_fault is True
+        assert reason.affects_storage_health is False
+
+    def test_unreadable_metadata_means_the_bytes_arrived(self):
+        """
+        ffprobe only reports missing metadata after it exited cleanly,
+        which means it reached the file and read it. The storage
+        delivered; the container just did not declare a bitrate.
+        """
+        assert ProbeFailureReason.INVALID_METADATA.affects_storage_health is False
+
+    def test_health_affecting_reasons_are_all_storage_faults(self):
+        """Nothing may count against a storage that is not its fault."""
+        for reason in HEALTH_AFFECTING_REASONS:
+            assert reason.is_storage_fault is True, reason.value
+
+    def test_health_affecting_reasons_never_exclude_the_video(self):
+        """
+        The two sets must stay disjoint.
+
+        A reason that retires the video is a dead end, measured once and
+        never again - it cannot describe how a storage is performing.
+        """
+        for reason in HEALTH_AFFECTING_REASONS:
+            assert reason.makes_video_unusable is False, reason.value
 
 
 class TestVideoExclusion:
