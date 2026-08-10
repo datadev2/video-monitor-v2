@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class VideoLink(BaseModel):
@@ -19,7 +19,7 @@ class VideoProbe(BaseModel):
     downloaded_bytes: int
     download_duration_seconds: float
 
-    created_at: datetime = datetime.now(timezone.utc)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=UTC))
 
 
 class VideoMetadata(BaseModel):

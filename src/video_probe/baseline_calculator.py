@@ -1,4 +1,5 @@
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import config
 from src.entities.probe.enums import ProbeStatus
@@ -15,7 +16,7 @@ class BaselineCalculator:
     whether a storage is performing below its expected download speed.
     """
 
-    def __init__(self, session):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def calculate_baseline(self, storage_id: int) -> float:

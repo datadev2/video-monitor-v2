@@ -1,4 +1,5 @@
-from typing import Literal, Sequence
+from collections.abc import Sequence
+from typing import Literal
 
 from pydantic import BaseModel, field_validator
 
@@ -32,6 +33,16 @@ class MissingBitrateAnalytics(BaseModel):
     videos_total: int
 
 
+class FailureBreakdown(BaseModel):
+    """A count of failed probes for one storage and one reason."""
+
+    storage_id: int
+    storage_name: str
+    reason: str
+    count: int
+    affects_health: bool
+
+
 class StatusData(BaseModel):
     status: Literal["Healthy", "Warning", "Critical", "Failed"]
     count: int
@@ -48,3 +59,4 @@ class Analytics(BaseModel):
     download_speed: Sequence[DownloadSpeedAnalytics]
     statuses: Sequence[StatusAnalytics]
     missing_bitrate: Sequence[MissingBitrateAnalytics]
+    failures: Sequence[FailureBreakdown]

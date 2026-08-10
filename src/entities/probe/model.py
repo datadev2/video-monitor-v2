@@ -27,7 +27,7 @@ class Probe(Base):
             values_callable=lambda obj: [e.value for e in obj],
             create_type=False,
         ),
-        default=ProbeStatus.HEALTHY.value,
+        default=ProbeStatus.HEALTHY,
     )
     failure_reason: Mapped[ProbeFailureReason | None] = mapped_column(
         PgEnum(

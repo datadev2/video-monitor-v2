@@ -1,9 +1,11 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class VideoRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     storage_id: int
     kvs_id: int
@@ -17,9 +19,6 @@ class VideoRead(BaseModel):
     errors_count: int = 0
     last_error_date: datetime | None = None
     is_bad: bool = False
-
-    class Config:
-        from_attributes = True
 
 
 class VideoCreate(BaseModel):

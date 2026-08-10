@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -106,7 +106,7 @@ class VideoService:
         """
         is_bad = True
 
-        last_error_date = datetime.now(timezone.utc)
+        last_error_date = datetime.now(UTC)
         video_data = VideoUpdate(
             errors_count=1, is_bad=is_bad, last_error_date=last_error_date
         )
@@ -131,7 +131,7 @@ class VideoService:
             VideoRead: Updated video record.
         """
         errors_count = video.errors_count + 1
-        last_error_date = datetime.now(timezone.utc)
+        last_error_date = datetime.now(UTC)
         video_data = VideoUpdate(
             errors_count=errors_count,
             is_bad=video.is_bad,

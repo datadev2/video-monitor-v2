@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 
 from loguru import logger
 
@@ -9,33 +10,41 @@ from src.entities.storage.services import StorageService
 from src.entities.video.schemas import VideoCreate
 from src.entities.video.services import VideoService
 
+VIDEOS_FILE = Path("videos.json")
 
-class DBPopulator:
-    async def populate_db(self) -> None:
-        with open("videos.json", "r") as file:
-            data = json.load(file)
-            async with get_session() as session:
-                video_service = VideoService(session)
-                storage_service = StorageService(session)
-                for d in data:
-                    storage = await storage_service.get_by_name(d["storage"])
-                    if storage is None:
-                        storage = await storage_service.create(
-                            StorageCreate(name=d["storage"])
-                        )
-                    video = await video_service.get_video_from_kvs_id(d["kvs_video_id"])
-                    if not video:
-                        video = await video_service.create(
-                            VideoCreate(
-                                storage_id=storage.id,
-                                kvs_id=d["kvs_video_id"],
-                                server_group_id=d["server_group_id"],
-                                video_format=d["video_format"],
-                            )
-                        )
-                        logger.info(f"Created video {video}")
+
+async def populate_db(source: Path = VIDEOS_FILE) -> None:
+    """
+    Seed storages and videos from a JSON dump, skipping what already exists.
+
+    Args:
+        source: JSON file holding the video records.
+    """
+    data = json.loads(source.read_text(encoding="utf-8"))
+
+    async with get_session() as session:
+        video_service = VideoService(session)
+        storage_service = StorageService(session)
+
+        for record in data:
+            storage = await storage_service.get_by_name(record["storage"])
+            if storage is None:
+                storage = await storage_service.create(
+                    StorageCreate(name=record["storage"])
+                )
+
+            video = await video_service.get_video_from_kvs_id(record["kvs_video_id"])
+            if video is None:
+                video = await video_service.create(
+                    VideoCreate(
+                        storage_id=storage.id,
+                        kvs_id=record["kvs_video_id"],
+                        server_group_id=record["server_group_id"],
+                        video_format=record["video_format"],
+                    )
+                )
+                logger.info(f"Created video {video}")
 
 
 if __name__ == "__main__":
-    db_populator = DBPopulator()
-    asyncio.run(db_populator.populate_db())
+    asyncio.run(populate_db())
