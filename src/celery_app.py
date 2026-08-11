@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from celery import Celery  # type: ignore[import-untyped]
 
+import src.entities.registry  # noqa: F401  (registers every mapped class)
 from src.config import config
 
 celery_app = Celery(

@@ -6,6 +6,7 @@ from loguru import logger
 from prometheus_client import generate_latest
 from starlette.responses import Response
 
+import src.entities.registry  # noqa: F401  (registers every mapped class)
 from src.analytics.coros import calculate_analytics_and_push_to_redis
 from src.infrastructure.prometheus import update_metrics
 from src.video_probe.router import router as probe_router

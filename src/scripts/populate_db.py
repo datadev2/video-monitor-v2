@@ -4,6 +4,7 @@ from pathlib import Path
 
 from loguru import logger
 
+import src.entities.registry  # noqa: F401  (registers every mapped class)
 from src.db import get_session
 from src.entities.storage.schemas import StorageCreate
 from src.entities.storage.services import StorageService
