@@ -8,13 +8,11 @@ from alembic import context
 from src.db import Base
 from src.config import config as cfg
 
-# Autogenerate diffs the database against Base.metadata, which each model
-# module populates as an import side effect. These imports are what put
-# the tables there - a new model that is not listed here is invisible to
-# Alembic and will silently never get a migration.
-from src.entities.probe.model import Probe  # noqa: F401
-from src.entities.storage.model import Storage  # noqa: F401
-from src.entities.video.model import Video  # noqa: F401
+# Autogenerate diffs the database against Base.metadata, which the model
+# modules populate as an import side effect. The registry is what puts
+# the tables there - a model missing from it is invisible to Alembic and
+# will silently never get a migration.
+import src.entities.registry  # noqa: F401
 
 config = context.config
 
