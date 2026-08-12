@@ -57,12 +57,25 @@ class VideoProber:
     - partially download video
     - measure effective throughput
 
-    Metadata is read by pointing ffprobe at the URL rather than at an
-    already-downloaded sample. ffprobe issues range requests and can seek
-    to the end of the container, which is what makes metadata readable
-    for files whose moov atom sits at the tail. Reading a downloaded head
-    instead would save a request per probe, but left one video in two or
-    three without a bitrate.
+    Metadata is read by pointing ffprobe at the URL, not at the sample we
+    download. ffprobe then issues its own range requests and can seek to
+    the end of the container, which is what makes metadata readable for
+    files whose moov atom sits at the tail. With this, a bitrate is
+    normally available.
+
+    REJECTED ALTERNATIVE - do not reintroduce
+    -----------------------------------------
+    An earlier iteration read metadata from the head of the file it had
+    already downloaded. It saves one request per probe, and it does not
+    work: in many containers the moov atom - and with it the bitrate and
+    duration - sits at the *tail*, outside the downloaded head. That
+    version left one video in two or three with no bitrate at all, which
+    silently disabled the CRITICAL check for them.
+
+    The figure above describes that abandoned design, not the current
+    one. Anything reasoning about how often a bitrate is missing today
+    should read video_missing_bitrate, which exists to catch a
+    regression in exactly this - not to report a normal state.
     """
 
     MIN_SIZE_MB: Final[int] = config.video_min_size_mb

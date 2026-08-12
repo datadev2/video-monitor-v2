@@ -63,13 +63,20 @@ def _warn_no_bitrate(video: VideoRead, url: str, result: VideoProbe) -> None:
     Shout about a probe that could not establish a bitrate.
 
     Without a bitrate the CRITICAL rule (speed below twice the bitrate)
-    cannot run, so the probe silently degrades to baseline comparison
-    only. That is easy to miss in a wall of INFO lines, hence the banner.
+    cannot run, so the probe is left with the baseline comparison and the
+    minimum-speed floor. That is easy to miss in a wall of INFO lines,
+    hence the banner.
+
+    This is a narrow case. A file that declares no bitrate at all fails
+    in _fetch_metadata with INVALID_METADATA and never reaches grading,
+    so getting here means the container declared a bitrate that is zero,
+    or small enough to round to zero, and no earlier run stored one
+    either.
 
     Args:
         video: Video that was probed.
         url: Generated video URL.
-        result: Probe result that came back without a bitrate.
+        result: Probe result that came back without a usable bitrate.
     """
     logger.warning(
         "\n"
@@ -82,10 +89,12 @@ def _warn_no_bitrate(video: VideoRead, url: str, result: VideoProbe) -> None:
         f"size_mb={result.size_mb} duration={result.duration_seconds}\n"
         f"  measured speed={result.download_speed_mbps} Mbps "
         f"from {result.downloaded_bytes} bytes\n"
-        "  cause: ffprobe could not read the downloaded head of the file\n"
-        "         (moov atom is most likely at the end of the container)\n"
-        "         and no bitrate was stored by an earlier run\n"
-        "  effect: probe is graded on the storage baseline alone\n"
+        "  cause: the container declares a bitrate of zero (or one small\n"
+        "         enough to round to zero) and no earlier run stored one.\n"
+        "         A file declaring no bitrate at all would have failed\n"
+        "         earlier as InvalidMetadata, not reached this point\n"
+        "  effect: graded on the storage baseline and the minimum-speed\n"
+        "          floor only, without the bitrate rule\n"
         f"  url: {url}\n"
         "!!!=====================================================!!!"
     )

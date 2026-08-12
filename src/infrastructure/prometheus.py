@@ -48,9 +48,11 @@ probe_failures_metric = Gauge(
 
 missing_bitrate_metric = Gauge(
     "video_missing_bitrate",
-    "Videos in rotation with no known bitrate, by storage. "
-    "These probes cannot run the CRITICAL check and are graded "
-    "on the storage baseline alone.",
+    "Videos in rotation with no known bitrate, by storage. Normally near "
+    "zero: ffprobe reads metadata straight from the URL and can seek to a "
+    "tail moov atom. A rising count means these videos cannot run the "
+    "bitrate-based CRITICAL check and fall back to the storage baseline "
+    "and the minimum-speed floor.",
     ["storage_id", "storage_name"],
 )
 
