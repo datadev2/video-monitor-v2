@@ -57,12 +57,25 @@ class VideoProber:
     - partially download video
     - measure effective throughput
 
-    Metadata is read by pointing ffprobe at the URL rather than at an
-    already-downloaded sample. ffprobe issues range requests and can seek
-    to the end of the container, which is what makes metadata readable
-    for files whose moov atom sits at the tail. Reading a downloaded head
-    instead would save a request per probe, but left one video in two or
-    three without a bitrate.
+    Metadata is read by pointing ffprobe at the URL, not at the sample we
+    download. ffprobe then issues its own range requests and can seek to
+    the end of the container, which is what makes metadata readable for
+    files whose moov atom sits at the tail. With this, a bitrate is
+    normally available.
+
+    REJECTED ALTERNATIVE - do not reintroduce
+    -----------------------------------------
+    An earlier iteration read metadata from the head of the file it had
+    already downloaded. It saves one request per probe, and it does not
+    work: in many containers the moov atom - and with it the bitrate and
+    duration - sits at the *tail*, outside the downloaded head. That
+    version left one video in two or three with no bitrate at all, which
+    silently disabled the CRITICAL check for them.
+
+    The figure above describes that abandoned design, not the current
+    one. Anything reasoning about how often a bitrate is missing today
+    should read video_missing_bitrate, which exists to catch a
+    regression in exactly this - not to report a normal state.
     """
 
     MIN_SIZE_MB: Final[int] = config.video_min_size_mb
@@ -294,6 +307,7 @@ class VideoProber:
         }
 
         downloaded = 0
+        timed_out = False
 
         started_at = time.monotonic()
 
@@ -326,13 +340,36 @@ class VideoProber:
                 status_code=exc.status,
             ) from exc
 
+        except TimeoutError as exc:
+            # Our own deadline expired, which makes this a finished
+            # measurement rather than a failure: we watched for exactly
+            # timeout_seconds and know precisely how much arrived. A node
+            # crawling along at a few KB/s is the degradation this
+            # service exists to catch, so it is graded on its speed like
+            # any other probe instead of being written off as an error.
+            #
+            # Unless nothing arrived at all - then the connection opened
+            # and the node never said a word, which is not a slow node,
+            # it is a dead one.
+            if downloaded <= 0:
+                logger.warning(
+                    f"Download timed out with no data for {url}: "
+                    f"error={describe_exception(exc)} "
+                    f"timeout_seconds={self._timeout_seconds}"
+                )
+                raise VideoDownloadError(
+                    f"{describe_exception(exc)} after 0 bytes",
+                    reason=ProbeFailureReason.STORAGE_UNREACHABLE,
+                ) from exc
+
+            timed_out = True
+
         except Exception as exc:
-            # Nothing here carries an HTTP status, and most of these
-            # exceptions stringify to nothing at all - a bare
-            # TimeoutError, ClientPayloadError or ConnectionResetError
-            # all render as "". Log the type, and how far the transfer
-            # got before it died: stalling at 30 MB of 32 is a slow
-            # node, dying at 0 is a connection that never delivered.
+            # Anything left is the transfer breaking under us rather than
+            # our deadline expiring - a reset connection, a truncated
+            # payload. The elapsed time is not a controlled observation
+            # window, so it is not a speed sample. Most of these
+            # stringify to nothing, hence describe_exception.
             elapsed = time.monotonic() - started_at
             logger.warning(
                 f"Download failed for {url}: "
@@ -353,6 +390,15 @@ class VideoProber:
             raise VideoDownloadError("Invalid elapsed time")
 
         speed_mbps = (downloaded * 8) / elapsed / 1024 / 1024
+
+        if timed_out:
+            logger.warning(
+                f"Download timed out, grading on the partial transfer for {url}: "
+                f"speed={speed_mbps:.4f} Mbps "
+                f"downloaded_bytes={downloaded} "
+                f"of_expected={max_bytes} "
+                f"elapsed_seconds={elapsed:.1f}"
+            )
 
         return DownloadResult(
             download_speed_mbps=round(speed_mbps, 2),

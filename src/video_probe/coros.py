@@ -63,13 +63,20 @@ def _warn_no_bitrate(video: VideoRead, url: str, result: VideoProbe) -> None:
     Shout about a probe that could not establish a bitrate.
 
     Without a bitrate the CRITICAL rule (speed below twice the bitrate)
-    cannot run, so the probe silently degrades to baseline comparison
-    only. That is easy to miss in a wall of INFO lines, hence the banner.
+    cannot run, so the probe is left with the baseline comparison and the
+    minimum-speed floor. That is easy to miss in a wall of INFO lines,
+    hence the banner.
+
+    This is a narrow case. A file that declares no bitrate at all fails
+    in _fetch_metadata with INVALID_METADATA and never reaches grading,
+    so getting here means the container declared a bitrate that is zero,
+    or small enough to round to zero, and no earlier run stored one
+    either.
 
     Args:
         video: Video that was probed.
         url: Generated video URL.
-        result: Probe result that came back without a bitrate.
+        result: Probe result that came back without a usable bitrate.
     """
     logger.warning(
         "\n"
@@ -82,10 +89,12 @@ def _warn_no_bitrate(video: VideoRead, url: str, result: VideoProbe) -> None:
         f"size_mb={result.size_mb} duration={result.duration_seconds}\n"
         f"  measured speed={result.download_speed_mbps} Mbps "
         f"from {result.downloaded_bytes} bytes\n"
-        "  cause: ffprobe could not read the downloaded head of the file\n"
-        "         (moov atom is most likely at the end of the container)\n"
-        "         and no bitrate was stored by an earlier run\n"
-        "  effect: probe is graded on the storage baseline alone\n"
+        "  cause: the container declares a bitrate of zero (or one small\n"
+        "         enough to round to zero) and no earlier run stored one.\n"
+        "         A file declaring no bitrate at all would have failed\n"
+        "         earlier as InvalidMetadata, not reached this point\n"
+        "  effect: graded on the storage baseline and the minimum-speed\n"
+        "          floor only, without the bitrate rule\n"
         f"  url: {url}\n"
         "!!!=====================================================!!!"
     )
@@ -142,10 +151,22 @@ def _grade_probe(
     """
     Grade a measured download speed.
 
-    A speed below twice the video's own bitrate cannot sustain playback,
-    which is CRITICAL regardless of how the storage normally performs.
-    Without a known bitrate that rule cannot run, so the probe falls back
-    to comparing against the storage baseline alone.
+    Two independent things make a probe CRITICAL.
+
+    The first is the node itself being too slow to be usable at all,
+    below `min_baseline_speed_mbps`. This check ignores the bitrate on
+    purpose. What is measured is the node's throughput, and a node
+    serves whatever happens to sit on it: bitrates are mixed across the
+    same node, so wherever there is a 480p file there is a 1440p file
+    too. A node dribbling out a small low-bitrate video - one that would
+    have arrived instantly under any healthy condition - will dribble
+    out a large one at exactly the same rate. Grading that as acceptable
+    because the file it was asked for happened to be small would hide a
+    node that is failing every other file on it.
+
+    The second is the speed being below twice the video's own bitrate,
+    which cannot sustain playback however well the storage normally
+    performs. This one needs a bitrate, and falls away without it.
 
     Args:
         result: Successful probe result.
@@ -159,6 +180,18 @@ def _grade_probe(
         baseline_mbps / 2,
         config.warning_speed_threshold_mbps,
     )
+
+    # Deliberately independent of the bitrate - see the docstring. The
+    # setting does double duty as the floor under a computed baseline
+    # and as the line below which a node is unusable, so tuning it moves
+    # both; that is intended, they are the same judgement.
+    #
+    # It also backstops the bitrate rule below, which is skipped when the
+    # bitrate is unknown. That is rare - pointing ffprobe at the URL
+    # normally yields one - but when it happens the rule is the only
+    # other route to CRITICAL.
+    if result.download_speed_mbps < config.min_baseline_speed_mbps:
+        return ProbeStatus.CRITICAL
 
     if bitrate_mbps and result.download_speed_mbps < bitrate_mbps * 2:
         return ProbeStatus.CRITICAL
