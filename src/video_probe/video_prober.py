@@ -23,6 +23,30 @@ from src.exc import (
 from src.video_probe.schemas import DownloadResult, VideoMetadata, VideoProbe
 
 
+def describe_exception(exc: BaseException) -> str:
+    """
+    Render an exception so the log never shows an empty message.
+
+    Several of the failures worth reporting carry no message at all -
+    `str(TimeoutError())` is the empty string, and so are
+    ClientPayloadError, ClientOSError and ConnectionResetError. Logging
+    the bare text turns the most interesting failures into a line that
+    ends in a colon and tells nobody anything.
+
+    Args:
+        exc: Exception to describe.
+
+    Returns:
+        str: The exception type, plus its message when it has one.
+    """
+    message = str(exc).strip()
+
+    if message:
+        return f"{type(exc).__name__}: {message}"
+
+    return type(exc).__name__
+
+
 class VideoProber:
     """
     Core primitive for video CDN probing.
@@ -144,10 +168,18 @@ class VideoProber:
             failure_reason = self._classify_failure(status, headers)
             logger.warning(
                 f"ffprobe failed for {url}: "
+                f"exit_code={process.returncode} "
                 f"http_status={status} reason={reason!r} "
                 f"failure_reason={failure_reason.value} "
                 f"headers={headers} "
                 f"stderr={stderr_text.strip()!r}"
+            )
+
+            # ffprobe can die without writing anything to stderr - killed
+            # by a signal, or simply giving up quietly. Carry the exit
+            # code instead so the raised error is never blank.
+            detail = (
+                stderr_text.strip() or f"ffprobe exited {process.returncode}, no stderr"
             )
 
             # Retry only when nothing answered at all. Any HTTP status is a
@@ -156,13 +188,13 @@ class VideoProber:
             # blocked, where retrying deepens the anti-hotlink ban.
             if status is None:
                 raise RetryableProbeError(
-                    stderr_text,
+                    f"{detail} (probe request: {reason})",
                     reason=ProbeFailureReason.STORAGE_UNREACHABLE,
                     status_code=status,
                 )
 
             raise VideoMetadataError(
-                stderr_text,
+                detail,
                 reason=failure_reason,
                 status_code=status,
             )
@@ -228,7 +260,7 @@ class VideoProber:
                         dict(response.headers),
                     )
         except Exception as exc:
-            return None, str(exc), {}
+            return None, describe_exception(exc), {}
 
     async def _measure_download_speed(self, url: str) -> DownloadResult:
         """
@@ -295,9 +327,23 @@ class VideoProber:
             ) from exc
 
         except Exception as exc:
-            logger.warning(f"Download failed for {url}: {exc}")
+            # Nothing here carries an HTTP status, and most of these
+            # exceptions stringify to nothing at all - a bare
+            # TimeoutError, ClientPayloadError or ConnectionResetError
+            # all render as "". Log the type, and how far the transfer
+            # got before it died: stalling at 30 MB of 32 is a slow
+            # node, dying at 0 is a connection that never delivered.
+            elapsed = time.monotonic() - started_at
+            logger.warning(
+                f"Download failed for {url}: "
+                f"error={describe_exception(exc)} "
+                f"downloaded_bytes={downloaded} "
+                f"of_expected={max_bytes} "
+                f"elapsed_seconds={elapsed:.1f} "
+                f"timeout_seconds={self._timeout_seconds}"
+            )
             raise VideoDownloadError(
-                str(exc),
+                describe_exception(exc),
                 reason=ProbeFailureReason.STORAGE_UNREACHABLE,
             ) from exc
 
