@@ -142,10 +142,22 @@ def _grade_probe(
     """
     Grade a measured download speed.
 
-    A speed below twice the video's own bitrate cannot sustain playback,
-    which is CRITICAL regardless of how the storage normally performs.
-    Without a known bitrate that rule cannot run, so the probe falls back
-    to comparing against the storage baseline alone.
+    Two independent things make a probe CRITICAL.
+
+    The first is the node itself being too slow to be usable at all,
+    below `min_baseline_speed_mbps`. This check ignores the bitrate on
+    purpose. What is measured is the node's throughput, and a node
+    serves whatever happens to sit on it: bitrates are mixed across the
+    same node, so wherever there is a 480p file there is a 1440p file
+    too. A node dribbling out a small low-bitrate video - one that would
+    have arrived instantly under any healthy condition - will dribble
+    out a large one at exactly the same rate. Grading that as acceptable
+    because the file it was asked for happened to be small would hide a
+    node that is failing every other file on it.
+
+    The second is the speed being below twice the video's own bitrate,
+    which cannot sustain playback however well the storage normally
+    performs. This one needs a bitrate, and falls away without it.
 
     Args:
         result: Successful probe result.
@@ -159,6 +171,18 @@ def _grade_probe(
         baseline_mbps / 2,
         config.warning_speed_threshold_mbps,
     )
+
+    # Deliberately independent of the bitrate - see the docstring. The
+    # setting does double duty as the floor under a computed baseline
+    # and as the line below which a node is unusable, so tuning it moves
+    # both; that is intended, they are the same judgement.
+    #
+    # It also backstops the bitrate rule below, which is skipped when the
+    # bitrate is unknown. That is rare - pointing ffprobe at the URL
+    # normally yields one - but when it happens the rule is the only
+    # other route to CRITICAL.
+    if result.download_speed_mbps < config.min_baseline_speed_mbps:
+        return ProbeStatus.CRITICAL
 
     if bitrate_mbps and result.download_speed_mbps < bitrate_mbps * 2:
         return ProbeStatus.CRITICAL
