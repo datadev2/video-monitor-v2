@@ -160,6 +160,11 @@ jobs:
             IP=${{ secrets.IP }}
 
             GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
+
+            PB_KVS_API_ENDPOINT=${{ secrets.PB_KVS_API_ENDPOINT }}
+            PB_KVS_API_USER=${{ secrets.PB_KVS_API_USER }}
+            PB_KVS_API_PASSWORD=${{ secrets.PB_KVS_API_PASSWORD }}
+
             EOF
 
             docker compose pull
