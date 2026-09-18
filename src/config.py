@@ -1,7 +1,6 @@
 from typing import Literal
 
-from pydantic import Field, RedisDsn
-
+from pydantic import Field, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +30,7 @@ class Config(BaseSettings):
     min_baseline_speed_mbps: float = Field(default=1.0)
     warning_speed_threshold_mbps: float = Field(default=20.0)
     monitoring_run_interval_minutes: int = Field(default=60)
+    video_loading_interval_minutes: int = Field(default=60)
 
     probes_per_storage: int = Field(default=3)
     probe_delay_seconds: float = Field(default=5.0)
@@ -38,6 +38,10 @@ class Config(BaseSettings):
     kvs_cv: str = Field(default="")
     kvs_ahv: str = Field(default="")
     ip: str = Field(default="0.0.0.0")
+
+    pb_kvs_api_endpoint: str = Field(default="http://localhost:8000/")
+    pb_kvs_api_user: str = Field(default="kvs")
+    pb_kvs_api_password: SecretStr = Field(default=SecretStr("kvs"))
 
     @property
     def db_connection_string(self) -> str:

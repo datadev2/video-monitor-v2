@@ -7,12 +7,15 @@ from src.db import get_session
 from src.entities.probe.enums import ProbeFailureReason, ProbeStatus
 from src.entities.probe.schemas import ProbeCreate
 from src.entities.probe.services import ProbeService
-from src.entities.video.schemas import VideoRead, VideoUpdate
+from src.entities.storage.schemas import StorageSlots
+from src.entities.storage.services import StorageService
+from src.entities.video.schemas import VideoCreate, VideoRead, VideoUpdate
 from src.entities.video.services import VideoService
 from src.exc import ProbeError
 from src.link_generator.link_generator import video_link_generator
 from src.video_probe.baseline_calculator import BaselineCalculator
-from src.video_probe.schemas import VideoProbe
+from src.video_probe.schemas import KVSVideo, VideoProbe
+from src.video_probe.video_loader import video_loader
 from src.video_probe.video_prober import video_prober
 
 
@@ -333,3 +336,107 @@ async def run_video_probes() -> None:
                 await asyncio.sleep(config.probe_delay_seconds)
 
         logger.info(f"Found {len(errors)} errors: {errors}")
+
+
+def _has_free_slots(slots: dict[int, StorageSlots]) -> bool:
+    return any(slot.free_slots > 0 for slot in slots.values())
+
+
+async def _fill_slots(
+    page: list[KVSVideo],
+    slots: dict[int, StorageSlots],
+    known_kvs_ids: set[int],
+    video_service: VideoService,
+) -> set[int]:
+    """
+    Store the videos of one page that fit a free storage slot.
+
+    Args:
+        page: Videos returned by the KVS API.
+        slots: Storage slots keyed by server group, updated in place.
+        known_kvs_ids: KVS ids already stored, updated in place.
+        video_service: Service used to create the videos.
+
+    Returns:
+        set[int]: Server groups of the page that match no storage.
+    """
+    unknown_server_groups: set[int] = set()
+
+    for kvs_video in page:
+        slot = slots.get(kvs_video.server_group_id)
+        if slot is None:
+            unknown_server_groups.add(kvs_video.server_group_id)
+            continue
+
+        if slot.free_slots <= 0 or kvs_video.kvs_id in known_kvs_ids:
+            continue
+
+        await video_service.create(
+            VideoCreate(
+                storage_id=slot.storage_id,
+                kvs_id=kvs_video.kvs_id,
+                server_group_id=kvs_video.server_group_id,
+                video_format=kvs_video.video_format,
+            )
+        )
+        known_kvs_ids.add(kvs_video.kvs_id)
+        slot.free_slots -= 1
+        logger.info(
+            f"Loaded video kvs_id={kvs_video.kvs_id} "
+            f"format={kvs_video.video_format} storage_id={slot.storage_id}"
+        )
+
+    return unknown_server_groups
+
+
+async def load_videos() -> None:
+    """
+    Execute the scheduled video loading workflow.
+
+    The workflow performs the following steps:
+
+    - counts the free probe slots of every storage;
+    - walks the KVS API catalog and stores videos into the free slots,
+      matching them to storages by server group;
+    - stops requesting pages as soon as every slot is filled.
+
+    A slot frees up whenever a video is marked as bad, so together with
+    the probe run this keeps rotating dead videos out of the pools.
+    """
+    async with get_session() as session:
+        video_service = VideoService(session)
+        storage_service = StorageService(session)
+
+        slots = {
+            slot.server_group_id: slot for slot in await storage_service.get_slots()
+        }
+        if not _has_free_slots(slots):
+            logger.info("Every storage has a full probe pool, nothing to load")
+            return
+
+        known_kvs_ids = await video_service.get_all_kvs_ids()
+        unknown_server_groups: set[int] = set()
+
+        async for page in video_loader.iter_pages():
+            unknown_server_groups |= await _fill_slots(
+                page, slots, known_kvs_ids, video_service
+            )
+            if not _has_free_slots(slots):
+                break
+
+    unfilled = {
+        server_group_id: slot.free_slots
+        for server_group_id, slot in slots.items()
+        if slot.free_slots > 0
+    }
+    if unfilled:
+        logger.warning(
+            f"KVS catalog ran out before filling every storage, "
+            f"free slots by server group: {unfilled}"
+        )
+
+    if unknown_server_groups:
+        logger.warning(
+            f"Skipped videos on server groups with no storage: "
+            f"{sorted(unknown_server_groups)}"
+        )

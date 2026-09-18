@@ -32,3 +32,9 @@ class DownloadResult(BaseModel):
     download_speed_mbps: float
     downloaded_bytes: int
     duration_seconds: float
+
+
+class KVSVideo(BaseModel):
+    kvs_id: int
+    server_group_id: int
+    video_format: str
