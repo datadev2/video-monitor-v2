@@ -23,11 +23,27 @@ from src.video_probe import coros, video_loader as video_loader_module
 from src.video_probe.schemas import KVSVideo
 from src.video_probe.video_loader import VideoLoader, pick_video_format
 
-FORMATS_1080 = "||_preview.mp4|320x180||_720p.mp4|1280x720||_1080p.mp4|1920x1080"
+MB = 1024 * 1024
+
+
+def _variant(suffix: str, dimensions: str, size_bytes: int | str) -> str:
+    """Build one `file_formats` chunk the way KVS stores it."""
+    return f"||{suffix}|{dimensions}|600|{size_bytes}|0|0|0|0|0|h264|30"
+
+
+FORMATS_1080 = (
+    _variant("_preview.mp4", "608x342", 1 * MB)
+    + _variant("_720p.mp4", "1280x720", 400 * MB)
+    + _variant("_1080p.mp4", "1920x1080", 900 * MB)
+)
 
 RECORDS = [
     {"video_id": 1, "server_group_id": 3, "file_formats": FORMATS_1080},
-    {"video_id": 2, "server_group_id": 3, "file_formats": "||_preview.mp4|320x180"},
+    {
+        "video_id": 2,
+        "server_group_id": 3,
+        "file_formats": _variant("_1080p.mp4", "1920x1080", 50 * MB),
+    },
     {"video_id": 3, "server_group_id": 4, "file_formats": FORMATS_1080},
     {"video_id": 4, "server_group_id": 3, "file_formats": FORMATS_1080},
     {"video_id": 5, "server_group_id": 4, "file_formats": FORMATS_1080},
@@ -77,6 +93,7 @@ async def kvs_api(monkeypatch):
         monkeypatch.setattr(config, "pb_kvs_api_endpoint", str(server.make_url("/")))
         return VideoLoader(), app
 
+    monkeypatch.setattr(config, "video_min_size_mb", 100)
     monkeypatch.setattr(video_loader_module, "PAGE_LIMIT", 2)
     monkeypatch.setattr(VideoLoader._fetch_page.retry, "wait", wait_none())
 
@@ -91,18 +108,64 @@ async def _collect(loader: VideoLoader) -> list[KVSVideo]:
 
 
 class TestPickVideoFormat:
+    @pytest.fixture(autouse=True)
+    def min_size(self, monkeypatch):
+        monkeypatch.setattr(config, "video_min_size_mb", 100)
+
     def test_picks_tallest_variant(self):
         assert pick_video_format(FORMATS_1080) == "_1080p.mp4"
 
+    def test_real_kvs_value(self):
+        formats = (
+            "||_360p.mp4|640x360|3997|363110475|0|0|0|0|0|h264|30"
+            "||.mp4|852x480|3997|514344326|0|0|0|0|0|h264|30"
+            "||_2160p.mp4|3840x2160|3997|8459579159|0|0|0|0|0|h264|30"
+            "||_preview.mp4|608x342|8|535718|0|0|0|0|0|h264|60"
+            "||_source.mkv|3840x2160|3997|12141235773|0|0|0|0|0|h264|30"
+        )
+
+        assert pick_video_format(formats) == "_2160p.mp4"
+
     def test_prefers_mp4_without_pb_prefix(self):
         formats = (
-            "||_pb_1080p.mp4|1920x1080||_1080p.webm|1920x1080||_1080p.mp4|1920x1080"
+            _variant("_pb_1080p.mp4", "1920x1080", 900 * MB)
+            + _variant("_1080p.webm", "1920x1080", 900 * MB)
+            + _variant("_1080p.mp4", "1920x1080", 900 * MB)
         )
 
         assert pick_video_format(formats) == "_1080p.mp4"
 
-    def test_ignores_preview_and_malformed_chunks(self):
-        formats = "||_preview.mp4|1920x1080||_broken.mp4||_x.mp4|axb"
+    def test_never_picks_source_of_vertical_video(self):
+        formats = (
+            _variant("_1080p.mp4", "606x1080", 170 * MB)
+            + _variant("_source.mkv", "1080x1920", 570 * MB)
+            + _variant("_pb_source.mkv", "2160x3840", 1000 * MB)
+        )
+
+        assert pick_video_format(formats) == "_1080p.mp4"
+
+    def test_skips_variants_below_min_size(self):
+        formats = _variant("_720p.mp4", "1280x720", 150 * MB) + _variant(
+            "_1080p.mp4", "1920x1080", 99 * MB
+        )
+
+        assert pick_video_format(formats) == "_720p.mp4"
+
+    def test_video_too_small_everywhere(self):
+        formats = (
+            _variant("_720p.mp4", "1280x720", 40 * MB)
+            + _variant("_1080p.mp4", "1920x1080", 99 * MB)
+            + _variant("_source.mkv", "1920x1080", 500 * MB)
+        )
+
+        assert pick_video_format(formats) is None
+
+    def test_ignores_malformed_chunks(self):
+        formats = (
+            "||_broken.mp4|1920x1080"
+            + _variant("_x.mp4", "axb", 900 * MB)
+            + _variant("_1080p.mp4", "1920x1080", "N/A")
+        )
 
         assert pick_video_format(formats) is None
 

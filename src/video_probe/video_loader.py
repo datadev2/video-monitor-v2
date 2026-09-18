@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from typing import Any, Final
+from typing import Any, Final, NamedTuple
 
 import aiohttp
 from loguru import logger
@@ -29,19 +29,36 @@ def _is_retryable(exc: BaseException) -> bool:
     )
 
 
-def _variant_rank(variant: tuple[int, str]) -> tuple[int, bool, bool]:
-    height, suffix = variant
-    return height, suffix.endswith(".mp4"), not suffix.startswith("_pb_")
+# Previews are tiny, and the source is the original upload that viewers
+# never stream - its speed says nothing about how a storage serves them.
+EXCLUDED_VARIANTS: Final[tuple[str, ...]] = ("preview", "source")
 
 
-def _parse_variant(chunk: str) -> tuple[int, str] | None:
+class VideoVariant(NamedTuple):
+    suffix: str
+    height: int
+    size_bytes: int
+
+
+def _variant_rank(variant: VideoVariant) -> tuple[int, bool, bool]:
+    return (
+        variant.height,
+        variant.suffix.endswith(".mp4"),
+        not variant.suffix.startswith("_pb_"),
+    )
+
+
+def _parse_variant(chunk: str) -> VideoVariant | None:
     fields = chunk.split("|")
-    if len(fields) < 2 or "preview" in fields[0]:
+    if len(fields) < 4 or any(name in fields[0] for name in EXCLUDED_VARIANTS):
         return None
+
     height = fields[1].partition("x")[2]
-    if not height.isdigit():
+    size_bytes = fields[3]
+    if not (height.isdigit() and size_bytes.isdigit()):
         return None
-    return int(height), fields[0]
+
+    return VideoVariant(fields[0], int(height), int(size_bytes))
 
 
 def pick_video_format(file_formats: str) -> str | None:
@@ -49,9 +66,11 @@ def pick_video_format(file_formats: str) -> str | None:
     Pick the format suffix of the best variant a KVS video has.
 
     `file_formats` lists the variants as `||`-separated chunks of
-    `suffix|WIDTHxHEIGHT|...`. The tallest variant wins, since the prober
-    rejects small files; among equals an .mp4 without the `_pb_` prefix
-    is preferred. Previews are never picked.
+    `suffix|WIDTHxHEIGHT|duration|size_bytes|...`. Variants smaller than
+    the prober accepts are dropped first, so a short clip is skipped here
+    instead of being stored and rejected by its first probe. Of the rest
+    the tallest wins; among equals an .mp4 without the `_pb_` prefix is
+    preferred. Previews and sources are never picked.
 
     Args:
         file_formats: Raw `file_formats` value from the KVS API.
@@ -60,14 +79,17 @@ def pick_video_format(file_formats: str) -> str | None:
         str | None: Format suffix (e.g. "_1080p.mp4"), or None if the
             video has no usable variant.
     """
+    min_size_bytes = config.video_min_size_mb * 1024 * 1024
     variants = [
         variant
         for chunk in file_formats.split("||")
-        if chunk and (variant := _parse_variant(chunk))
+        if chunk
+        and (variant := _parse_variant(chunk))
+        and variant.size_bytes >= min_size_bytes
     ]
     if not variants:
         return None
-    return max(variants, key=_variant_rank)[1]
+    return max(variants, key=_variant_rank).suffix
 
 
 class VideoLoader:
@@ -190,10 +212,12 @@ class VideoLoader:
             list[KVSVideo]: Videos with a usable format.
         """
         videos: list[KVSVideo] = []
+        unusable = 0
 
         for record in records:
             video_format = pick_video_format(record.get("file_formats") or "")
             if video_format is None:
+                unusable += 1
                 continue
 
             try:
@@ -211,6 +235,12 @@ class VideoLoader:
                     f"Skipping invalid KVS video "
                     f"video_id={record.get('video_id')!r}: {exc}"
                 )
+
+        if unusable:
+            logger.info(
+                f"Skipped {unusable} of {len(records)} KVS videos with no "
+                f"variant of at least {config.video_min_size_mb} MB"
+            )
 
         return videos
 
