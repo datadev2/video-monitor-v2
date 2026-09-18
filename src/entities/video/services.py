@@ -46,6 +46,19 @@ class VideoService:
             return VideoRead.model_validate(result)
         return None
 
+    async def get_all_kvs_ids(self) -> set[int]:
+        """
+        Retrieve the KVS identifiers of every known video.
+
+        Bad videos are included on purpose: a video excluded from probing
+        must not be brought back by the loader.
+
+        Returns:
+            set[int]: KVS identifiers of all stored videos.
+        """
+        result = await self.session.execute(select(Video.kvs_id))
+        return set(result.scalars().all())
+
     async def get_videos_for_probe(self) -> list[VideoRead]:
         """
         Retrieve videos eligible for probing.

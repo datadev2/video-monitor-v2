@@ -5,8 +5,12 @@ from starlette.responses import JSONResponse
 
 from src.auth import basic_auth
 from src.video_probe.dependencies import probe_video
-from src.video_probe.schemas import VideoProbe, VideoLink
-from src.video_probe.tasks import probe_video_task, run_video_probes_task
+from src.video_probe.schemas import VideoLink, VideoProbe
+from src.video_probe.tasks import (
+    load_videos_task,
+    probe_video_task,
+    run_video_probes_task,
+)
 
 router = APIRouter(
     prefix="/probe",
@@ -31,4 +35,10 @@ async def probe_task(video_link: VideoLink) -> JSONResponse:
 @router.post("/probe-videos")
 async def video_probes() -> JSONResponse:
     task = run_video_probes_task.delay()
+    return JSONResponse(content={"task": task.id}, status_code=201)
+
+
+@router.post("/load-videos")
+async def load_videos() -> JSONResponse:
+    task = load_videos_task.delay()
     return JSONResponse(content={"task": task.id}, status_code=201)

@@ -46,3 +46,7 @@ class VideoDownloadError(ProbeError):
     """Exception raised when video download fails"""
 
     default_reason = ProbeFailureReason.UNKNOWN
+
+
+class KVSAPIError(Exception):
+    """Exception raised when the KVS API returns an unexpected response"""

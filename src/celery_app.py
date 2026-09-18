@@ -27,4 +27,8 @@ celery_app.conf.beat_schedule = {
         "task": "run_monitoring_and_calculate_analytics_task",
         "schedule": timedelta(minutes=config.monitoring_run_interval_minutes),
     },
+    "load_videos": {
+        "task": "load_videos_task",
+        "schedule": timedelta(minutes=config.video_loading_interval_minutes),
+    },
 }
